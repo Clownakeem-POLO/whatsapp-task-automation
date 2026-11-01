@@ -1,0 +1,165 @@
+{
+  "name": "Daily Digest - Due Today or Overdue",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "=https://api.clickup.com/api/v2/list/YOUR_CLICKUP_LIST_ID/task",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "include_closed",
+              "value": "false"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -144,
+        -144
+      ],
+      "id": "498ec563-a6d1-4d8f-8ca3-8a27fafbac36",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "5Cwe4Bxkw2Nbfwmx",
+          "name": "ClickUp API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/YOUR_PHONE_NUMBER_ID/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_WHATSAPP_ACCESS_TOKEN"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.whatsapp_payload }}",
+        "options": {}
+      },
+      "id": "cc11b4c3-d979-4ade-a176-d300b95c0aec",
+      "name": "Send WhatsApp Reminder",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        608,
+        -144
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "id": "94424d97-5940-4a2f-970a-959949ebe465",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -608,
+        -144
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return ($json.tasks || []).map(t => ({ json: t }));"
+      },
+      "id": "50deed10-25b7-415c-ab0c-92208ef48276",
+      "name": "Split Tasks",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        112,
+        -144
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst now = new Date();\nconst startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();\nconst endOfToday = startOfToday + 24*3600*1000;\nconst ADMIN_WHATSAPP = '2547XXXXXXXX';\nconst adminList = [];\nconst byAssignee = {};\nfor (const item of items) {\n  const task = item.json;\n  if (!task.id) continue;\n  const desc = task.description || task.text_content || '';\n  const m = desc.match(/\\[BOTMETA\\]([\\s\\S]*?)\\[\\/BOTMETA\\]/);\n  let meta = {};\n  if (m) { try { meta = JSON.parse(m[1]); } catch(e) { meta = {}; } }\n  const isClosed = task.status && task.status.type === 'closed';\n  if (isClosed) continue;\n  const dueMs = task.due_date ? Number(task.due_date) : null;\n  if (!dueMs) continue;\n  const isDueToday = dueMs >= startOfToday && dueMs < endOfToday;\n  const isOverdue = dueMs < startOfToday;\n  if (!isDueToday && !isOverdue) continue;\n  const dueText = new Date(dueMs).toDateString();\n  const priorityName = (task.priority && task.priority.priority) ? task.priority.priority : 'normal';\n  const line = '- ' + task.name + ' (priority: ' + priorityName + ', due: ' + dueText + (isOverdue ? ', OVERDUE' : ', due today') + ')';\n  adminList.push(line);\n  if (meta.assignee_whatsapp) {\n    if (!byAssignee[meta.assignee_whatsapp]) byAssignee[meta.assignee_whatsapp] = [];\n    byAssignee[meta.assignee_whatsapp].push(line);\n  }\n}\nconst out = [];\nif (adminList.length) {\n  out.push({ json: { whatsapp_payload: { messaging_product:'whatsapp', to: ADMIN_WHATSAPP, type:'text', text: { body: 'Daily digest - tasks due today or overdue (' + adminList.length + '):\\n' + adminList.join('\\n') } } } });\n}\nfor (const wa in byAssignee) {\n  if (wa === ADMIN_WHATSAPP) continue;\n  const lines2 = byAssignee[wa];\n  out.push({ json: { whatsapp_payload: { messaging_product:'whatsapp', to: wa, type:'text', text: { body: 'Your tasks due today or overdue (' + lines2.length + '):\\n' + lines2.join('\\n') } } } });\n}\nreturn out;"
+      },
+      "id": "84608086-4238-45e7-89fd-d18a635caa1b",
+      "name": "Build Digest",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        352,
+        -144
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Split Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Tasks": {
+      "main": [
+        [
+          {
+            "node": "Build Digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Digest": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "4985d69f-da0c-4021-91c3-468e52e1be29",
+  "meta": {},
+  "nodeGroups": [],
+  "id": "gTynECStYdGASMBy",
+  "tags": []
+}

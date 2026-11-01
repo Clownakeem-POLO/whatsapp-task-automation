@@ -1,0 +1,286 @@
+{
+  "name": "MANAGEMENT TRACKER CHATBOT",
+  "nodes": [
+    {
+      "parameters": {
+        "public": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -464,
+        -16
+      ],
+      "id": "9d6bd8fa-cddd-45c0-955f-458abf4cea7c",
+      "name": "When chat message received",
+      "webhookId": "f67809be-325e-4d3e-b26e-528e9fe02994"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are \"Tracker Buddy\", a friendly, patient assistant that helps busy (and sometimes forgetful!) managers keep the Management Tracker up to date, by chatting with them in plain, everyday language -- no jargon, no tech-speak.\n\nWHO YOU TALK TO: Senior management staff who are not very tech-savvy. Some are older and may need things repeated, explained simply, or broken into small steps. Always be warm, patient, respectful and encouraging. Never make anyone feel silly for asking a basic question or for forgetting something. If they seem confused, slow down and offer a simpler example.\n\nWHAT YOU DO:\n1. Chat naturally with the person to find out what they want to update -- e.g. \"The design review for the new logo is done\", \"Sales needs to follow up with ABC Corp by Friday\", \"Mark the finance report as overdue, John is behind on it\".\n2. Figure out, from the conversation, which of the 5 departments this belongs to: Planning, Design, Sales, Finance, or Data Analytics. If it's not obvious, just ask them in a simple way, e.g. \"Is that a Sales item or a Finance item?\"\n3. Politely confirm the details back to them in plain language before saving anything, e.g. \"Got it -- I'll mark 'Follow up with ABC Corp' as due this Friday for Sales, owner John. Shall I save that?\"\n4. Once confirmed, save/update the item in the correct department's sheet in the MANAGEMENT TRACKER Excel workbook (Item, Owner, Due Date, Status, department fields), and make sure the matching ClickUp task gets created or updated too. (These steps happen through the tools connected to this agent -- use them once configured.)\n5. Gently and proactively remind the person about things that are due soon or overdue, in a friendly, non-nagging way, e.g. \"Just a gentle reminder -- the Q3 budget review for Finance was due yesterday. Would you like me to mark it done, or push the date?\"\n6. If someone asks \"what's on my plate\" or \"what's overdue\", summarize their open items back to them in plain, short sentences -- not a big technical table.\n\nTONE RULES:\n- Use short, simple sentences. Avoid technical words like \"sync\", \"payload\", \"API\", \"field mapping\" -- just say things like \"update\", \"save\", \"the sheet\".\n- Confirm before making changes. Never assume -- ask if unsure.\n- If the person goes off-topic or just wants to chat, be kind and human about it, then gently steer back.\n- Always end with a clear, simple next step or question so the person always knows what to do next.\n\nNOTE TO WHOEVER IS CONFIGURING THIS WORKFLOW: This system message is a starting point. Once the Excel, ClickUp and reminder tools are connected below, update the instructions above to reference the specific tool names so the agent knows exactly when to call each one."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -112,
+        -16
+      ],
+      "id": "3fa904e9-ce2a-4235-ac25-c2ee8878c046",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        192,
+        240
+      ],
+      "id": "520c5e88-1edf-4ee3-b920-364cdb8437bd",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "workbook": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "worksheet": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftExcelTool",
+      "typeVersion": 2.2,
+      "position": [
+        400,
+        240
+      ],
+      "id": "fb245bc5-b026-4b08-91c6-4c7d87443904",
+      "name": "Excel - Append Row (NOT CONFIGURED, disabled)",
+      "notesInFlow": true,
+      "credentials": {
+        "microsoftExcelOAuth2Api": {
+          "id": "r3xywT4lhmQY3Fp3",
+          "name": "Microsoft Excel account"
+        }
+      },
+      "notes": "NOT CONFIGURED YET. Needs the same Microsoft OAuth2 credential as the SYNC/ALARMS workflows. This is how the chatbot actually saves what the person tells it: once the AI Agent confirms details with the person (item, owner, due date, status, department), it calls this tool to append a new row to the matching department's sheet in MANAGEMENT TRACKER.xlsx (Workbook/Sheet/Table need to be picked once the credential is connected -- Sheet should be set dynamically to the right department, e.g. via an expression driven by what the person told the agent). The SYNC workflow then picks up this new row and creates/updates the matching ClickUp task automatically. Left disabled until credential is set up."
+    },
+    {
+      "parameters": {
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.clickUpTool",
+      "typeVersion": 1,
+      "position": [
+        608,
+        224
+      ],
+      "id": "cc60a058-07fd-42b3-9e7f-7ec83d268079",
+      "name": "ClickUp - Create Task (NOT CONFIGURED, disabled)",
+      "notesInFlow": true,
+      "credentials": {
+        "clickUpApi": {
+          "id": "KKPmJai68XmYaGiu",
+          "name": "ClickUp account"
+        }
+      },
+      "notes": "NOT CONFIGURED YET. Needs the same ClickUp credential as the SYNC/ALARMS workflows. This lets the chatbot create a ClickUp task directly when the person describes a brand-new item that doesn't exist yet (for updates to existing items, the Excel Append tool + the SYNC workflow handle it instead). Team/Space/Folder/List need to be picked once the credential is connected -- List should be set dynamically based on which of the 5 departments (Planning/Design/Sales/Finance/Data Analytics) the person is talking about, using the same List IDs as the SYNC and ALARMS workflows. Left disabled until credential is set up."
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "voice-note",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -112,
+        400
+      ],
+      "id": "3e8a4058-8605-47a3-8796-5863fc9c11e2",
+      "name": "Webhook",
+      "webhookId": "f3993cd1-8063-4f18-b5c9-1304c020841a",
+      "notesInFlow": true,
+      "notes": "Receives an uploaded voice recording from the Management Tracker Assistant page (the \"send a voice recording file\" option). POST multipart/form-data with the audio in field \"data\".\n\nNOT CONFIGURED YET downstream. Next node should be an HTTP Request node calling Groq's free Whisper API (console.groq.com, no credit card needed) to transcribe the audio: POST https://api.groq.com/openai/v1/audio/transcriptions, header Authorization: Bearer <GROQ_API_KEY>, multipart form-data body forwarding this node's binary \"data\" field plus a text field model=whisper-large-v3. Then a Set node should map the returned transcription text into {chatInput: <text>, sessionId: <from this upload>} and connect into the same AI Agent the main Chat Trigger uses.\n\nThis Webhook node itself needs no credential -- it's just the entry point. Left unconnected downstream until a Groq API key is provided."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/audio/transcriptions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer GROQ_API_KEY_PLACEHOLDER"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "data",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "model",
+              "value": "whisper-large-v3"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        160,
+        400
+      ],
+      "id": "1b37355d-14a9-4bd7-b8bd-153ef2b3e866",
+      "name": "HTTP Request",
+      "notesInFlow": true,
+      "disabled": true,
+      "notes": "Calls Groq's free Whisper API (console.groq.com, no credit card needed) to transcribe the voice recording forwarded by the \"Webhook\" node. POST https://api.groq.com/openai/v1/audio/transcriptions with the binary \"data\" field plus model=whisper-large-v3.\n\nNOT CONFIGURED YET -- needs a real Groq API key. Get one free at console.groq.com, then replace GROQ_API_KEY_PLACEHOLDER in the Authorization header above with the real key (as a credential is preferable, but a placeholder header value works too for a quick start). Left deactivated until a real key is in place.\n\nOnce working, its output feeds a Set node that maps the transcription text into {chatInput, sessionId} for the same AI Agent the main Chat Trigger uses."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9f67f0d8-a032-45ec-a5d2-708bf09b5493",
+              "name": "chatInput",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            },
+            {
+              "id": "2149a0ab-3bde-4696-b7c4-76843fcceb92",
+              "name": "sessionId",
+              "value": "={{ $('Webhook').item.json.body.sessionId }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        496,
+        400
+      ],
+      "id": "f82cdd61-02fb-4f16-bcc8-224127be0c30",
+      "name": "Edit Fields"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Excel - Append Row (NOT CONFIGURED, disabled)": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ClickUp - Create Task (NOT CONFIGURED, disabled)": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "79b179bf-3365-4cd9-bd28-dbebd52072ac",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "nodeGroups": [],
+  "id": "oIkNQwrvlppZiWgc",
+  "tags": []
+}

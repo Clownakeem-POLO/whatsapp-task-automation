@@ -1,0 +1,226 @@
+{
+  "name": "MISSING NAMES RESOLVER",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "resolve-names",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "a19a66a1-dcec-4178-a811-90142b21e4b5",
+      "name": "Webhook - Resolver Page",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        48,
+        48
+      ],
+      "webhookId": "ea055360-443c-475e-8ea0-269016a9cfc2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const html = \"<!DOCTYPE html>\\n<html lang=\\\"en\\\">\\n<head>\\n<meta charset=\\\"UTF-8\\\">\\n<meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1.0\\\">\\n<title>Missing Names Resolver</title>\\n<style>\\n  :root {\\n    --bg: #0f1115; --panel: #171a21; --panel2: #1d212b; --border: #2a2f3a;\\n    --text: #e6e9ef; --muted: #8b93a3; --accent: #4f8cff; --accent2: #6ee7b7;\\n    --danger: #ff6b6b; --warn: #ffb84f; --radius: 10px;\\n  }\\n  * { box-sizing: border-box; }\\n  body {\\n    margin: 0; font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;\\n    background: var(--bg); color: var(--text); min-height: 100vh;\\n  }\\n  header {\\n    padding: 20px 28px; border-bottom: 1px solid var(--border);\\n    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;\\n  }\\n  header h1 { font-size: 19px; margin: 0; font-weight: 600; }\\n  header p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }\\n  #refreshBtn {\\n    background: var(--panel2); border: 1px solid var(--border); color: var(--text);\\n    padding: 8px 14px; border-radius: var(--radius); cursor: pointer; font-size: 13px;\\n  }\\n  #refreshBtn:hover { border-color: var(--accent); }\\n  #statusBar { font-size: 12px; color: var(--muted); padding: 6px 28px; }\\n  .tabs { display: flex; gap: 4px; padding: 0 28px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }\\n  .tab-btn {\\n    background: transparent; border: none; color: var(--muted); padding: 12px 16px;\\n    font-size: 14px; cursor: pointer; border-bottom: 2px solid transparent; font-weight: 500;\\n  }\\n  .tab-btn.active { color: var(--text); border-bottom-color: var(--accent); }\\n  .tab-btn .count {\\n    display: inline-block; margin-left: 6px; background: var(--panel2); color: var(--muted);\\n    border-radius: 999px; padding: 1px 8px; font-size: 11px;\\n  }\\n  .tab-btn.active .count { background: var(--accent); color: #fff; }\\n  main { padding: 20px 28px 60px; max-width: 1000px; }\\n  .tab-panel { display: none; }\\n  .tab-panel.active { display: block; }\\n  .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }\\n  #searchBox {\\n    background: var(--panel); border: 1px solid var(--border); color: var(--text);\\n    padding: 8px 12px; border-radius: var(--radius); font-size: 13px; flex: 1; min-width: 180px;\\n  }\\n  .az-bar { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 16px; }\\n  .az-btn {\\n    background: var(--panel); border: 1px solid var(--border); color: var(--muted);\\n    width: 28px; height: 28px; border-radius: 6px; font-size: 12px; cursor: pointer;\\n    display: flex; align-items: center; justify-content: center;\\n  }\\n  .az-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }\\n  .az-btn:disabled { opacity: 0.3; cursor: default; }\\n  .card {\\n    background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);\\n    padding: 14px 16px; margin-bottom: 10px;\\n  }\\n  .card-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }\\n  .card-title { font-size: 14px; font-weight: 600; }\\n  .card-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }\\n  .chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }\\n  .chip {\\n    background: var(--panel2); border: 1px solid var(--border); color: var(--text);\\n    padding: 5px 10px; border-radius: 999px; font-size: 12px; cursor: pointer;\\n  }\\n  .chip:hover { border-color: var(--accent2); color: var(--accent2); }\\n  .chip .score { color: var(--muted); margin-left: 5px; }\\n  .btn {\\n    border: 1px solid var(--border); background: var(--panel2); color: var(--text);\\n    padding: 6px 12px; border-radius: 8px; font-size: 12px; cursor: pointer; white-space: nowrap;\\n  }\\n  .btn:hover { border-color: var(--accent); }\\n  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }\\n  .btn.primary:hover { filter: brightness(1.1); }\\n  .btn.ghost { background: transparent; }\\n  .btn.warn { color: var(--warn); border-color: var(--warn); background: transparent; }\\n  .btn.danger { color: var(--danger); border-color: var(--danger); background: transparent; }\\n  .btn:disabled { opacity: 0.5; cursor: default; }\\n  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }\\n  .inline-form {\\n    margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border);\\n    display: none; gap: 8px; flex-wrap: wrap; align-items: center;\\n  }\\n  .inline-form.open { display: flex; }\\n  .inline-form input, .inline-form select {\\n    background: var(--panel2); border: 1px solid var(--border); color: var(--text);\\n    padding: 6px 10px; border-radius: 6px; font-size: 12px;\\n  }\\n  .empty-state { color: var(--muted); font-size: 13px; padding: 30px 0; text-align: center; }\\n  .toast {\\n    position: fixed; bottom: 20px; right: 20px; background: var(--panel2);\\n    border: 1px solid var(--border); border-left: 3px solid var(--accent2);\\n    color: var(--text); padding: 10px 16px; border-radius: 8px; font-size: 13px;\\n    box-shadow: 0 4px 20px rgba(0,0,0,0.4); z-index: 999; max-width: 320px; opacity: 0; transition: opacity .2s;\\n  }\\n  .toast.show { opacity: 1; }\\n  .toast.error { border-left-color: var(--danger); }\\n  details.activity { margin-top: 26px; }\\n  details.activity summary { cursor: pointer; color: var(--muted); font-size: 13px; margin-bottom: 10px; }\\n  .log-line {\\n    font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11px; color: var(--muted);\\n    padding: 3px 0; border-bottom: 1px solid var(--border);\\n  }\\n  .badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; background: var(--panel2); color: var(--muted); margin-left: 8px; }\\n</style>\\n</head>\\n<body>\\n\\n<header>\\n  <div>\\n    <h1>Missing Names Resolver</h1>\\n    <p>Cumulative Sales Report &mdash; resolve names and account managers so the next report run is accurate.</p>\\n  </div>\\n  <button id=\\\"refreshBtn\\\" onclick=\\\"loadState()\\\">&#8635; Refresh</button>\\n</header>\\n<div id=\\\"statusBar\\\">Loading&hellip;</div>\\n\\n<div class=\\\"tabs\\\">\\n  <button class=\\\"tab-btn active\\\" data-tab=\\\"names\\\" onclick=\\\"switchTab('names')\\\">Missing Names <span class=\\\"count\\\" id=\\\"countNames\\\">0</span></button>\\n  <button class=\\\"tab-btn\\\" data-tab=\\\"managers\\\" onclick=\\\"switchTab('managers')\\\">Missing Managers <span class=\\\"count\\\" id=\\\"countManagers\\\">0</span></button>\\n  <button class=\\\"tab-btn\\\" data-tab=\\\"ignored\\\" onclick=\\\"switchTab('ignored')\\\">Ignored <span class=\\\"count\\\" id=\\\"countIgnored\\\">0</span></button>\\n</div>\\n\\n<main>\\n\\n  <div class=\\\"tab-panel active\\\" id=\\\"panel-names\\\">\\n    <div class=\\\"toolbar\\\">\\n      <input id=\\\"searchBox\\\" type=\\\"text\\\" placeholder=\\\"Search a name&hellip;\\\" oninput=\\\"renderNames()\\\">\\n    </div>\\n    <div class=\\\"az-bar\\\" id=\\\"azBar\\\"></div>\\n    <div id=\\\"namesList\\\"></div>\\n  </div>\\n\\n  <div class=\\\"tab-panel\\\" id=\\\"panel-managers\\\">\\n    <div id=\\\"managersList\\\"></div>\\n  </div>\\n\\n  <div class=\\\"tab-panel\\\" id=\\\"panel-ignored\\\">\\n    <div id=\\\"ignoredList\\\"></div>\\n  </div>\\n\\n  <details class=\\\"activity\\\">\\n    <summary>Recent activity (auto-matched &amp; manually resolved)</summary>\\n    <div id=\\\"activityLog\\\"></div>\\n  </details>\\n\\n</main>\\n\\n<div class=\\\"toast\\\" id=\\\"toast\\\"></div>\\n\\n<script>\\nconst API_STATE  = 'resolve-names-state';\\nconst API_ACTION = 'resolve-names-action';\\n\\nlet STATE = { missing_names: [], missing_managers: [], managers: [], sheets: [], ignored: [], auto_mapped_log: [], resolution_log: [] };\\nlet activeLetter = 'ALL';\\nlet currentTab = 'names';\\n\\nfunction switchTab(tab) {\\n  currentTab = tab;\\n  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));\\n  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));\\n  document.getElementById('panel-' + tab).classList.add('active');\\n}\\n\\nfunction showToast(msg, isError) {\\n  const t = document.getElementById('toast');\\n  t.textContent = msg;\\n  t.className = 'toast show' + (isError ? ' error' : '');\\n  setTimeout(() => { t.className = 'toast'; }, 2600);\\n}\\n\\nfunction setStatus(msg) { document.getElementById('statusBar').textContent = msg; }\\n\\nasync function loadState() {\\n  setStatus('Loading current state\\u2026');\\n  try {\\n    const res = await fetch(API_STATE, { cache: 'no-store' });\\n    if (!res.ok) throw new Error('HTTP ' + res.status);\\n    STATE = await res.json();\\n    renderAll();\\n    setStatus('Last updated ' + (STATE.generated_at || '') + ' \\u2014 ' +\\n      STATE.missing_names.length + ' missing name(s), ' +\\n      STATE.missing_managers.length + ' missing manager(s), ' +\\n      STATE.ignored.length + ' ignored.');\\n  } catch (e) {\\n    setStatus('Failed to load state: ' + e.message);\\n    showToast('Could not load state: ' + e.message, true);\\n  }\\n}\\n\\nasync function postAction(payload) {\\n  const res = await fetch(API_ACTION, {\\n    method: 'POST',\\n    headers: { 'Content-Type': 'application/json' },\\n    body: JSON.stringify(payload)\\n  });\\n  let data;\\n  try { data = await res.json(); } catch (e) { data = {}; }\\n  if (!res.ok || data.ok === false) {\\n    throw new Error(data.error || ('HTTP ' + res.status));\\n  }\\n  return data;\\n}\\n\\nfunction renderAll() {\\n  document.getElementById('countNames').textContent = STATE.missing_names.length;\\n  document.getElementById('countManagers').textContent = STATE.missing_managers.length;\\n  document.getElementById('countIgnored').textContent = STATE.ignored.length;\\n  renderAzBar();\\n  renderNames();\\n  renderManagers();\\n  renderIgnored();\\n  renderActivity();\\n}\\n\\nfunction renderAzBar() {\\n  const letters = new Set(STATE.missing_names.map(n => {\\n    const c = (n.raw || '').trim().charAt(0).toUpperCase();\\n    return /[A-Z]/.test(c) ? c : '#';\\n  }));\\n  const bar = document.getElementById('azBar');\\n  bar.innerHTML = '';\\n  const allBtn = document.createElement('button');\\n  allBtn.className = 'az-btn' + (activeLetter === 'ALL' ? ' active' : '');\\n  allBtn.textContent = 'All';\\n  allBtn.style.width = 'auto';\\n  allBtn.style.padding = '0 10px';\\n  allBtn.onclick = () => { activeLetter = 'ALL'; renderAzBar(); renderNames(); };\\n  bar.appendChild(allBtn);\\n  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ#'.split('');\\n  alphabet.forEach(L => {\\n    const b = document.createElement('button');\\n    b.className = 'az-btn' + (activeLetter === L ? ' active' : '');\\n    b.textContent = L;\\n    const has = letters.has(L);\\n    b.disabled = !has;\\n    b.onclick = () => { activeLetter = L; renderAzBar(); renderNames(); };\\n    bar.appendChild(b);\\n  });\\n}\\n\\nfunction matchesSearch(text) {\\n  const q = document.getElementById('searchBox').value.trim().toUpperCase();\\n  return !q || (text || '').toUpperCase().includes(q);\\n}\\n\\nfunction renderNames() {\\n  const list = document.getElementById('namesList');\\n  list.innerHTML = '';\\n  let items = STATE.missing_names.slice();\\n  if (activeLetter !== 'ALL') {\\n    items = items.filter(n => {\\n      const c = (n.raw || '').trim().charAt(0).toUpperCase();\\n      const bucket = /[A-Z]/.test(c) ? c : '#';\\n      return bucket === activeLetter;\\n    });\\n  }\\n  items = items.filter(n => matchesSearch(n.raw));\\n  items.sort((a, b) => (a.raw || '').localeCompare(b.raw || ''));\\n\\n  if (!items.length) {\\n    list.innerHTML = '<div class=\\\"empty-state\\\">Nothing here \\u2014 no missing names match this filter.</div>';\\n    return;\\n  }\\n\\n  items.forEach(n => {\\n    const card = document.createElement('div');\\n    card.className = 'card';\\n    const formId = 'form-add-' + btoa(unescape(encodeURIComponent(n.raw))).replace(/[^a-zA-Z0-9]/g, '');\\n    const managerOptions = STATE.managers.map(m => '<option value=\\\"' + escapeHtml(m) + '\\\">' + escapeHtml(m) + '</option>').join('');\\n    card.innerHTML = `\\n      <div class=\\\"card-row\\\">\\n        <div>\\n          <div class=\\\"card-title\\\">${escapeHtml(n.raw)}</div>\\n          <div class=\\\"card-sub\\\">Not found in the cleaning map \\u2014 pick a suggestion, add it as new, or skip it.</div>\\n        </div>\\n        <div class=\\\"btn-row\\\">\\n          <button class=\\\"btn ghost\\\" onclick=\\\"toggleAddForm('${formId}')\\\">+ Add as new</button>\\n          <button class=\\\"btn warn\\\" onclick=\\\"skipName('${escapeAttr(n.raw)}')\\\">Skip</button>\\n        </div>\\n      </div>\\n      ${n.suggestions && n.suggestions.length ? `\\n        <div class=\\\"chip-row\\\">\\n          ${n.suggestions.map(s => `<span class=\\\"chip\\\" onclick=\\\"mapName('${escapeAttr(n.raw)}','${escapeAttr(s.name)}')\\\">${escapeHtml(s.name)}<span class=\\\"score\\\">${s.score}%</span></span>`).join('')}\\n        </div>` : ''}\\n      <div class=\\\"inline-form\\\" id=\\\"${formId}\\\">\\n        <input type=\\\"text\\\" placeholder=\\\"Canonical name\\\" value=\\\"${escapeAttr(n.raw.toUpperCase())}\\\" data-role=\\\"canonical\\\">\\n        <select data-role=\\\"manager\\\"><option value=\\\"\\\">(no manager yet)</option>${managerOptions}</select>\\n        <input type=\\\"text\\\" placeholder=\\\"Sheet (optional)\\\" data-role=\\\"sheet\\\">\\n        <button class=\\\"btn primary\\\" onclick=\\\"submitAddNew('${escapeAttr(n.raw)}', '${formId}')\\\">Save</button>\\n        <button class=\\\"btn ghost\\\" onclick=\\\"toggleAddForm('${formId}')\\\">Cancel</button>\\n      </div>\\n    `;\\n    list.appendChild(card);\\n  });\\n}\\n\\nfunction toggleAddForm(id) {\\n  document.querySelectorAll('.inline-form.open').forEach(f => { if (f.id !== id) f.classList.remove('open'); });\\n  document.getElementById(id).classList.toggle('open');\\n}\\n\\nasync function mapName(raw, canonical) {\\n  try {\\n    await postAction({ action: 'map_name', raw, canonical });\\n    showToast(`Mapped \\\"${raw}\\\" \\u2192 \\\"${canonical}\\\"`);\\n    await loadState();\\n  } catch (e) { showToast('Failed: ' + e.message, true); }\\n}\\n\\nasync function submitAddNew(raw, formId) {\\n  const form = document.getElementById(formId);\\n  const canonical = form.querySelector('[data-role=\\\"canonical\\\"]').value.trim();\\n  const manager = form.querySelector('[data-role=\\\"manager\\\"]').value.trim();\\n  const sheet = form.querySelector('[data-role=\\\"sheet\\\"]').value.trim();\\n  try {\\n    await postAction({ action: 'add_new', raw, canonical, manager, sheet });\\n    showToast(`Added \\\"${raw}\\\" as a new customer`);\\n    await loadState();\\n  } catch (e) { showToast('Failed: ' + e.message, true); }\\n}\\n\\nasync function skipName(raw) {\\n  try {\\n    await postAction({ action: 'skip', name: raw, scope: 'name' });\\n    showToast(`Skipped \\\"${raw}\\\" \\u2014 moved to Ignored`);\\n    await loadState();\\n  } catch (e) { showToast('Failed: ' + e.message, true); }\\n}\\n\\nfunction renderManagers() {\\n  const list = document.getElementById('managersList');\\n  list.innerHTML = '';\\n  const items = STATE.missing_managers.slice().sort();\\n  if (!items.length) {\\n    list.innerHTML = '<div class=\\\"empty-state\\\">No customers are missing an account manager right now.</div>';\\n    return;\\n  }\\n  const managerOptions = STATE.managers.map(m => '<option value=\\\"' + escapeHtml(m) + '\\\">' + escapeHtml(m) + '</option>').join('');\\n  items.forEach(name => {\\n    const card = document.createElement('div');\\n    card.className = 'card';\\n    const selId = 'mgr-sel-' + btoa(unescape(encodeURIComponent(name))).replace(/[^a-zA-Z0-9]/g, '');\\n    card.innerHTML = `\\n      <div class=\\\"card-row\\\">\\n        <div>\\n          <div class=\\\"card-title\\\">${escapeHtml(name)}</div>\\n          <div class=\\\"card-sub\\\">Has sales but no account manager assigned.</div>\\n        </div>\\n        <div class=\\\"btn-row\\\">\\n          <select id=\\\"${selId}-sel\\\"><option value=\\\"\\\">Pick a manager\\u2026</option>${managerOptions}</select>\\n          <input type=\\\"text\\\" id=\\\"${selId}-sheet\\\" placeholder=\\\"Sheet (optional)\\\" style=\\\"background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:12px;width:120px;\\\">\\n          <button class=\\\"btn primary\\\" onclick=\\\"assignManager('${escapeAttr(name)}','${selId}')\\\">Assign</button>\\n          <button class=\\\"btn warn\\\" onclick=\\\"skipManager('${escapeAttr(name)}')\\\">Skip</button>\\n        </div>\\n      </div>\\n    `;\\n    list.appendChild(card);\\n  });\\n}\\n\\nasync function assignManager(name, selId) {\\n  const manager = document.getElementById(selId + '-sel').value;\\n  const sheet = document.getElementById(selId + '-sheet').value.trim();\\n  if (!manager) { showToast('Pick a manager first', true); return; }\\n  try {\\n    await postAction({ action: 'assign_manager', name, manager, sheet });\\n    showToast(`Assigned ${manager} to \\\"${name}\\\"`);\\n    await loadState();\\n  } catch (e) { showToast('Failed: ' + e.message, true); }\\n}\\n\\nasync function skipManager(name) {\\n  try {\\n    await postAction({ action: 'skip', name, scope: 'manager' });\\n    showToast(`Skipped manager assignment for \\\"${name}\\\" (will reappear next run)`);\\n    await loadState();\\n  } catch (e) { showToast('Failed: ' + e.message, true); }\\n}\\n\\nfunction renderIgnored() {\\n  const list = document.getElementById('ignoredList');\\n  list.innerHTML = '';\\n  const items = STATE.ignored.slice();\\n  if (!items.length) {\\n    list.innerHTML = '<div class=\\\"empty-state\\\">No names are ignored right now.</div>';\\n    return;\\n  }\\n  items.forEach(entry => {\\n    const card = document.createElement('div');\\n    card.className = 'card';\\n    card.innerHTML = `\\n      <div class=\\\"card-row\\\">\\n        <div>\\n          <div class=\\\"card-title\\\">${escapeHtml(entry.canonical)}</div>\\n          <div class=\\\"card-sub\\\">Ignored \\u2014 self-mapped, and synced to the desktop app's ignore list.</div>\\n        </div>\\n        <div class=\\\"btn-row\\\">\\n          <button class=\\\"btn danger\\\" onclick=\\\"undoIgnore('${escapeAttr(entry.raw)}')\\\">Undo</button>\\n        </div>\\n      </div>\\n    `;\\n    list.appendChild(card);\\n  });\\n}\\n\\nasync function undoIgnore(raw) {\\n  try {\\n    await postAction({ action: 'unskip', raw });\\n    showToast(`Un-ignored \\\"${raw}\\\" \\u2014 back in Missing Names`);\\n    await loadState();\\n  } catch (e) { showToast('Failed: ' + e.message, true); }\\n}\\n\\nfunction renderActivity() {\\n  const box = document.getElementById('activityLog');\\n  box.innerHTML = '';\\n  const auto = (STATE.auto_mapped_log || []).slice(0, 15).map(l => '<div class=\\\"log-line\\\">' + escapeHtml(l) + '<span class=\\\"badge\\\">auto</span></div>');\\n  const manual = (STATE.resolution_log || []).slice(0, 15).map(l => '<div class=\\\"log-line\\\">' + escapeHtml(l) + '<span class=\\\"badge\\\">manual</span></div>');\\n  const combined = auto.concat(manual);\\n  box.innerHTML = combined.length ? combined.join('') : '<div class=\\\"empty-state\\\">No activity logged yet.</div>';\\n}\\n\\nfunction escapeHtml(s) {\\n  return String(s == null ? '' : s).replace(/[&<>\\\"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\\\"':'&quot;',\\\"'\\\":'&#39;'}[c]));\\n}\\nfunction escapeAttr(s) {\\n  return String(s == null ? '' : s).replace(/\\\\\\\\/g, '\\\\\\\\\\\\\\\\').replace(/'/g, \\\"\\\\\\\\'\\\");\\n}\\n\\nloadState();\\n</script>\\n\\n</body>\\n</html>\\n\";\nreturn [{ json: { html } }];"
+      },
+      "id": "e995aa57-042a-4789-bb55-49819207575e",
+      "name": "Build Resolver Page",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.html }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "fd9b7fed-2390-42f7-bc92-ce4f53f32a8c",
+      "name": "Respond With Page",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        576,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "path": "resolve-names-state",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "529ddcd8-a0b1-4462-8e08-b93252879a68",
+      "name": "Webhook - Get State",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        48,
+        272
+      ],
+      "webhookId": "bdb4312e-5c5d-4469-80e8-b1574a340ee2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const { execFileSync } = require('child_process');\nconst nodeProcess = require('process');\nconst PYTHON = \"python\";\nconst SCRIPT = \"D:\\\\Automation\\\\automation\\\\daily\\\\scripts\\\\resolve_api.py\";\nlet state;\ntry {\n  const out = execFileSync(PYTHON, [SCRIPT, 'get_state'], { encoding: 'utf-8', env: nodeProcess.env, maxBuffer: 1024 * 1024 * 20 });\n  state = JSON.parse(out);\n} catch (e) {\n  state = { missing_names: [], missing_managers: [], managers: [], sheets: [], ignored: [], auto_mapped_log: [], resolution_log: [], error: e.message };\n}\nreturn [{ json: state }];"
+      },
+      "id": "3c99912e-d508-432b-9f77-856bb0b59531",
+      "name": "Get State",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "d174bf1d-a9ac-422f-a3bf-3217552fcf06",
+      "name": "Respond With State",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        576,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "resolve-names-action",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "3c9ecc9d-21f7-413b-8065-59625aef8e76",
+      "name": "Webhook - Action",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        48,
+        496
+      ],
+      "webhookId": "b81da029-9868-467a-a3e9-bb8a861d645e"
+    },
+    {
+      "parameters": {
+        "jsCode": "const { execFileSync } = require('child_process');\nconst nodeProcess = require('process');\nconst PYTHON = \"python\";\nconst SCRIPT = \"D:\\\\Automation\\\\automation\\\\daily\\\\scripts\\\\resolve_api.py\";\n\nconst item = $input.first().json;\nconst body = item.body || item;\nconst action = body.action;\n\nfunction run(args) {\n  const out = execFileSync(PYTHON, [SCRIPT, ...args], { encoding: 'utf-8', env: nodeProcess.env, maxBuffer: 1024 * 1024 * 20 });\n  return JSON.parse(out);\n}\n\nlet result;\ntry {\n  if (action === 'map_name') {\n    result = run(['map_name', '--raw', body.raw, '--canonical', body.canonical]);\n  } else if (action === 'add_new') {\n    const args = ['add_new', '--raw', body.raw];\n    if (body.canonical) args.push('--canonical', body.canonical);\n    if (body.manager) args.push('--manager', body.manager);\n    if (body.sheet) args.push('--sheet', body.sheet);\n    result = run(args);\n  } else if (action === 'assign_manager') {\n    const args = ['assign_manager', '--name', body.name, '--manager', body.manager];\n    if (body.sheet) args.push('--sheet', body.sheet);\n    result = run(args);\n  } else if (action === 'skip') {\n    result = run(['skip', '--name', body.name, '--scope', body.scope]);\n  } else if (action === 'unskip') {\n    result = run(['unskip', '--raw', body.raw]);\n  } else if (action === 'undo_automap') {\n    result = run(['undo_automap', '--raw', body.raw]);\n  } else {\n    result = { ok: false, error: 'Unknown action: ' + action };\n  }\n} catch (e) {\n  result = { ok: false, error: e.message };\n}\n\nreturn [{ json: result }];"
+      },
+      "id": "33f99276-5bc3-41a1-9e7e-07f205d94b77",
+      "name": "Dispatch Action",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        496
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "6b1fed76-c009-43cb-9daa-c1a375084216",
+      "name": "Respond With Result",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        576,
+        496
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook - Resolver Page": {
+      "main": [
+        [
+          {
+            "node": "Build Resolver Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Resolver Page": {
+      "main": [
+        [
+          {
+            "node": "Respond With Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - Get State": {
+      "main": [
+        [
+          {
+            "node": "Get State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get State": {
+      "main": [
+        [
+          {
+            "node": "Respond With State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - Action": {
+      "main": [
+        [
+          {
+            "node": "Dispatch Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dispatch Action": {
+      "main": [
+        [
+          {
+            "node": "Respond With Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "012fee90-9612-47a9-976e-a0e27cd43220",
+  "meta": {},
+  "nodeGroups": [],
+  "id": "1GM7K5XaL6vpSeQi",
+  "tags": []
+}

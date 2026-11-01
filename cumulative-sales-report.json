@@ -1,0 +1,585 @@
+{
+  "name": "CUMULATIVE SALES REPORT",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ],
+      "id": "b2d224c6-8437-4561-9a27-d56624d797ce",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "fileSelector": "=D:\\Automation\\automation\\daily\\workspace\\flags\\sent-{{ $now.format('yyyy-MM-dd') }}.txt",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        256,
+        0
+      ],
+      "id": "f5f9522d-9b29-4677-b170-4dad70d2259b",
+      "name": "Read/Write Files from Disk",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "fileSelector": "D:\\DailyData\\*.xlsx",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        448,
+        0
+      ],
+      "id": "91653a16-6d4d-4157-9cbf-627cd25e5912",
+      "name": "Read/Write Files from Disk1"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "= {{ $json.fileName.toLowerCase() }}",
+                    "rightValue": "sku",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    },
+                    "id": "a04547da-cdef-4da0-bcf6-095baad2b5c3"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "42c4d759-516e-437f-b2e5-8086d8bdd811",
+                    "leftValue": "={{ $json.fileName.toLowerCase() }}",
+                    "rightValue": "nip",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "00d4fbdc-290b-47c7-9252-b488067779c6",
+                    "leftValue": "= {{ $json.fileName.toLowerCase() }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        672,
+        0
+      ],
+      "id": "b22f97f4-eb50-46ec-8585-44aa6005baeb",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "={{ 'D:\\\\Automation\\\\automation\\\\daily\\\\input\\\\sku\\\\' + $binary.data.fileName }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        1120,
+        -112
+      ],
+      "id": "b6195715-f7ca-402c-b7c4-f38f48ea13dc",
+      "name": "Read/Write Files from Disk2"
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "={{ 'D:\\\\Automation\\\\automation\\\\daily\\\\input\\\\nipcaps\\\\' + $binary.data.fileName }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        1120,
+        0
+      ],
+      "id": "6f4841c7-7f45-4bd4-828f-49c9e65990c3",
+      "name": "Read/Write Files from Disk3"
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "={{ 'D:\\\\Automation\\\\automation\\\\daily\\\\input\\\\thika\\\\' + $binary.data.fileName }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        1120,
+        112
+      ],
+      "id": "ea48ec3c-d494-461f-8f20-2b7538f53230",
+      "name": "Read/Write Files from Disk4"
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1456,
+        -48
+      ],
+      "id": "db3ab33e-fe4f-405d-95e7-5d343876cf49",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "const cp = require('child_process');\nconst nodeProcess = require('process');\nconst scriptPath = 'D:\\\\Automation\\\\automation\\\\run_cumulative.py';\nconst childEnv = Object.assign({}, nodeProcess.env);\nchildEnv.APPDATA = childEnv.APPDATA || 'C:\\\\Users\\\\user\\\\AppData\\\\Roaming';\nchildEnv.USERPROFILE = childEnv.USERPROFILE || 'C:\\\\Users\\\\user';\nchildEnv.LOCALAPPDATA = childEnv.LOCALAPPDATA || 'C:\\\\Users\\\\user\\\\AppData\\\\Local';\nlet output = '';\nlet success = true;\ntry {\noutput = cp.execFileSync('python', [scriptPath], { encoding: 'utf-8', env: childEnv });\n} catch (err) {\nsuccess = false;\noutput = String(err.stdout || '') + '\\n' + String(err.stderr || err.message || err);\n}\nreturn [{ json: { success: success, output: output } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        -48
+      ],
+      "id": "b2e71663-f10b-4c3d-87c8-3e4b465447c0",
+      "name": "Run Cumulative Report Builder"
+    },
+    {
+      "parameters": {
+        "jsCode": "const { execFileSync } = require('child_process');\nconst nodeProcess = require('process');\n\nconst PYTHON = \"python\";\nconst SCRIPT = \"D:\\\\Automation\\\\automation\\\\daily\\\\scripts\\\\resolve_api.py\";\n\nlet state;\ntry {\n  const out = execFileSync(PYTHON, [SCRIPT, 'get_state'], { encoding: 'utf-8', env: nodeProcess.env });\n  state = JSON.parse(out);\n} catch (e) {\n  state = { missing_names: [], missing_managers: [], error: e.message };\n}\n\nconst missingNamesCount = (state.missing_names || []).length;\nconst missingManagersCount = (state.missing_managers || []).length;\nconst total = missingNamesCount + missingManagersCount;\n\nreturn [{\n  json: {\n    missingNamesCount,\n    missingManagersCount,\n    total,\n    resolverUrl: 'http://localhost:5678/webhook/resolve-names',\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1904,
+        -48
+      ],
+      "id": "c09854e8-42d0-4456-9dc3-8b7af7016aba",
+      "name": "Check Pending Resolutions"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "11d0e8c2-7225-450f-9f10-71e0704a4841",
+              "leftValue": "={{ $json.total }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2128,
+        -48
+      ],
+      "id": "362917a1-b0ae-4800-9753-5ba5f4a9477d",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "fromEmail": "admin@example.com",
+        "toEmail": "reports@example.com",
+        "subject": "=Cumulative Sales Report – {{ $json.total }} item(s) need review",
+        "html": "=<p>The Cumulative Sales Report pipeline finished with unresolved items that need a human decision:</p><ul><li>{{ $json.missingNamesCount }} customer name(s) needing a match/decision</li><li>{{ $json.missingManagersCount }} customer(s) missing an account manager</li></ul><p>Resolve them here: <a href=\"{{ $json.resolverUrl }}\">{{ $json.resolverUrl }}</a></p>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        2608,
+        -160
+      ],
+      "id": "7214b0ce-7599-46b2-a412-607ea7654f57",
+      "name": "Send an Email",
+      "webhookId": "1099cad7-5eab-41f2-b891-aafc5d5c784b",
+      "credentials": {
+        "smtp": {
+          "id": "ViOqYQutgjPyB7ac",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "team": "=PLEASE_SET_TEAM_ID",
+        "name": "=Sales report needs review: {{ $json.total }} item(s)",
+        "additionalFields": {
+          "content": "={{ $json.missingNamesCount }} customer name(s) and {{ $json.missingManagersCount }} account manager assignment(s) need review. Resolve here: {{ $json.resolverUrl }}"
+        }
+      },
+      "type": "n8n-nodes-base.clickUp",
+      "typeVersion": 1,
+      "position": [
+        2608,
+        64
+      ],
+      "id": "73c558f4-582a-414a-8089-341b92ea72bb",
+      "name": "Create a task",
+      "credentials": {
+        "clickUpApi": {
+          "id": "KKPmJai68XmYaGiu",
+          "name": "ClickUp account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "url": "NOT_CONFIGURED_YET -- set up QODBC / Web Connector / export-file access, then point this at the real endpoint",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -192,
+        -400
+      ],
+      "id": "1153b3d8-80fa-46c3-a076-ecc29ca27d97",
+      "name": "QuickBooks Desktop - Get Data (NOT CONFIGURED, disabled)",
+      "notesInFlow": true,
+      "notes": "Placeholder for pulling data from QuickBooks Desktop (not QBO). Not wired into the pipeline and left disabled -- QB Desktop needs a real integration method decided first (QODBC/ODBC, Web Connector+QBXML, or scheduled export files). Once decided, configure this node's request/credential and connect it ahead of the sort-into-sku/nipcaps/thika step, feeding D:\\DailyData."
+    },
+    {
+      "parameters": {
+        "url": "NOT_CONFIGURED_YET -- set up ODBC / e.net / export-file access, then point this at the real endpoint",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -48,
+        288
+      ],
+      "id": "ba96f92d-75b4-49b5-b0ed-91321cb15dc9",
+      "name": "Syspro - Get Data (NOT CONFIGURED, disabled)",
+      "notesInFlow": true,
+      "notes": "Placeholder for pulling data from Syspro. Not wired into the pipeline and left disabled -- Syspro needs a real integration method decided first (ODBC/direct DB, e.net/REST API, or scheduled export files). Once decided, configure this node's request/credential and connect it ahead of the sort-into-sku/nipcaps/thika step, feeding D:\\DailyData."
+    },
+    {
+      "parameters": {
+        "jsCode": "const { execFileSync } = require('child_process'); const REP = 'D:\\\\Automation\\\\automation\\\\daily\\\\reports'; let output = ''; let filePath = ''; let success = true; try { output = execFileSync('cmd.exe', ['/c', 'dir', '/b', '/o-d', REP], { encoding: 'utf-8' }); const files = output.split(/\\r?\\n/).map(s => s.trim()).filter(s => s.toLowerCase().endsWith('.xlsx')); if (files.length === 0) { success = false; } else { filePath = REP + '\\\\' + files[0]; } } catch (err) { success = false; output = String(err.stdout || '') + '\\n' + String(err.stderr || err.message || err); } return [{ json: { success: success, filePath: filePath, output: output } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1984,
+        304
+      ],
+      "id": "ee91e7a0-50dc-4c3d-a55c-812e3e8f9149",
+      "name": "Find Latest Report File"
+    },
+    {
+      "parameters": {
+        "fileSelector": "={{ $json.filePath }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        2288,
+        304
+      ],
+      "id": "b26c4d9b-2c0c-4ecf-9d93-2e213c8a9427",
+      "name": "Read Report File"
+    },
+    {
+      "parameters": {
+        "fromEmail": "admin@example.com",
+        "toEmail": "reports@example.com",
+        "subject": "=Daily Sales Report - {{ $now.format('dd LLL yyyy') }}",
+        "html": "<p>Hi,</p><p>Kindly find attached the day's report below.</p><p>Best regards,<br>Data Analytics Automation</p>",
+        "options": {
+          "fileAttachments": "data"
+        }
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        2576,
+        304
+      ],
+      "id": "6afb57cd-3b8d-470b-8f88-ce11f759e43f",
+      "name": "Send Report Email",
+      "webhookId": "c990c9de-0c30-445c-b94c-092087625485",
+      "credentials": {
+        "smtp": {
+          "id": "ViOqYQutgjPyB7ac",
+          "name": "SMTP account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk1": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Read/Write Files from Disk3",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Read/Write Files from Disk4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk2": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk3": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk4": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Run Cumulative Report Builder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Cumulative Report Builder": {
+      "main": [
+        [
+          {
+            "node": "Check Pending Resolutions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Pending Resolutions": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Find Latest Report File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send an Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create a task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "QuickBooks Desktop - Get Data (NOT CONFIGURED, disabled)": {
+      "main": [
+        [
+          {
+            "node": "Syspro - Get Data (NOT CONFIGURED, disabled)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Latest Report File": {
+      "main": [
+        [
+          {
+            "node": "Read Report File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Report File": {
+      "main": [
+        [
+          {
+            "node": "Send Report Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "timezone": "Africa/Nairobi",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "17f2005a-2330-4cb9-bd0e-8d95de2d9a11",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "nodeGroups": [],
+  "id": "zgHfWa3ogL70lm4j",
+  "tags": []
+}

@@ -1,0 +1,142 @@
+{
+  "name": "Weekly Cleanup - Purge Completed ClickUp Tasks",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtHour": 2
+            }
+          ]
+        }
+      },
+      "id": "b8000000-0000-4000-8000-000000000001",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        400,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.clickup.com/api/v2/list/YOUR_CLICKUP_LIST_ID/task",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "include_closed",
+              "value": "true"
+            },
+            {
+              "name": "statuses[]",
+              "value": "complete"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b8000000-0000-4000-8000-000000000002",
+      "name": "Get Completed Tasks",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        656,
+        304
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "5Cwe4Bxkw2Nbfwmx",
+          "name": "ClickUp API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return ($json.tasks || []).map(t => ({ json: { id: t.id, name: t.name } }));"
+      },
+      "id": "b8000000-0000-4000-8000-000000000003",
+      "name": "Split Completed Tasks",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        912,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "method": "DELETE",
+        "url": "=https://api.clickup.com/api/v2/task/{{ $json.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "b8000000-0000-4000-8000-000000000004",
+      "name": "Delete Task",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1152,
+        304
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "5Cwe4Bxkw2Nbfwmx",
+          "name": "ClickUp API Token"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Completed Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Completed Tasks": {
+      "main": [
+        [
+          {
+            "node": "Split Completed Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Completed Tasks": {
+      "main": [
+        [
+          {
+            "node": "Delete Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "2bab47d5-82d1-4d41-98c4-45d0f9e56fca",
+  "meta": {},
+  "nodeGroups": [],
+  "id": "VKKaI1bj14rHUvuT",
+  "tags": []
+}

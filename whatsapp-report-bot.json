@@ -1,0 +1,446 @@
+{
+  "name": "WHATSAPP REPORT BOT",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-incoming",
+        "options": {}
+      },
+      "id": "35c5e9ab-fab2-48d6-8853-9fd6ceadfb96",
+      "name": "Webhook - WhatsApp Incoming",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        112,
+        256
+      ],
+      "webhookId": "9a24cf0b-9657-4f53-9e48-82ab3787078a"
+    },
+    {
+      "parameters": {
+        "jsCode": "const { execFileSync } = require('child_process');\n\nconst CONTACTS_FILE = \"D:\\\\Automation\\\\automation\\\\config\\\\whatsapp_contacts.json\";\nconst REPORTS_DIR = \"D:\\\\Automation\\\\automation\\\\daily\\\\reports\";\nconst WAHA_BASE = \"http://localhost:3000\";\nconst WAHA_API_KEY = \"YOUR_WAHA_API_KEY\";\nconst WAHA_SESSION = \"default\";\n\nconst item = $input.first().json;\nconst body = item.body || item;\nconst payload = body.payload || body;\nconst fromMe = payload.fromMe === true;\nconst rawFrom = String(payload.from || payload.chatId || '');\nconst text = String(payload.body || payload.text || '').trim();\n\nlet phone = rawFrom.replace(/@.*/, '').replace(/\\D/g, '');\n\n// WhatsApp often reports the sender as an internal @lid instead of a phone-number JID.\n// Resolve it back to the real phone number via WAHA's lid lookup when that happens.\nif (/@lid$/i.test(rawFrom)) {\n  try {\n    const url = WAHA_BASE + '/api/' + WAHA_SESSION + '/lids/' + encodeURIComponent(rawFrom);\n    const raw = execFileSync('curl.exe', ['-s', '-H', 'X-Api-Key: ' + WAHA_API_KEY, url], { encoding: 'utf-8' });\n    const data = JSON.parse(raw);\n    if (data && data.pn) {\n      phone = String(data.pn).replace(/@.*/, '').replace(/\\D/g, '');\n    }\n  } catch (e) {\n    // leave phone as the lid digits if resolution fails\n  }\n}\n\nlet outcome = 'ignore';\nlet email = '';\nlet filePath = '';\n\nif (!fromMe && String(body.event || '').toLowerCase() === 'message' && /cumulative\\s*report/i.test(text)) {\n  let contacts = {};\n  try {    const raw = execFileSync('cmd.exe', ['/c', 'type', CONTACTS_FILE], { encoding: 'utf-8' });\n    contacts = JSON.parse(raw);\n  } catch (e) {\n    contacts = {};\n  }\n  const entry = contacts[phone];\n  if (entry && entry.email) {\n    email = entry.email;\n    try {\n      const out = execFileSync('cmd.exe', ['/c', 'dir', '/b', '/o-d', REPORTS_DIR], { encoding: 'utf-8' });\n      const files = out.split(/\\r?\\n/).map(s => s.trim()).filter(s => s.toLowerCase().endsWith('.xlsx'));\n      if (files.length) {\n        filePath = REPORTS_DIR + '\\\\' + files[0];\n        outcome = 'send_report';\n      } else {\n        outcome = 'no_report';\n      }\n    } catch (e) {\n      outcome = 'no_report';\n    }\n  } else {\n    outcome = 'not_registered';\n  }\n}\n\nreturn [{ json: { outcome, phone, email, filePath, text, chatId: rawFrom } }];"
+      },
+      "id": "a3463471-1982-4434-be28-7b4170834be2",
+      "name": "Parse & Decide",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        368,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "721aa2bb-a1d9-4a71-9b8d-c984f71737bb",
+              "leftValue": "={{ $json.outcome }}",
+              "rightValue": "send_report",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "eecf8378-362d-4348-9f26-28120c02743b",
+      "name": "If - Send Report?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        640,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "fileSelector": "={{ $('Parse & Decide').item.json.filePath }}",
+        "options": {}
+      },
+      "id": "18847765-e324-4a21-911a-cb9ad1dfac4a",
+      "name": "Read Report File",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        896,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:3000/api/sendText",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Api-Key",
+              "value": "YOUR_WAHA_API_KEY"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { session: \"default\", chatId: $('Parse & Decide').item.json.chatId, text: \"Here's today's cumulative sales report \\ud83d\\udc4d Hang tight, sending the file now...\" } }}",
+        "options": {}
+      },
+      "id": "efbeff21-d338-43f4-addc-0fadfe861d69",
+      "name": "WAHA Send Text (Report)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1168,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:3000/api/sendFile",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Api-Key",
+              "value": "YOUR_WAHA_API_KEY"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{  $json }}",
+        "options": {}
+      },
+      "id": "8de3d6da-83ad-43c1-a67b-50732d0b1491",
+      "name": "WAHA Send File",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1648,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "admin@example.com",
+        "toEmail": "={{ $('Parse & Decide').item.json.email }}",
+        "subject": "=Cumulative Sales Report - {{ $now.format('dd LLL yyyy') }} (requested via WhatsApp)",
+        "html": "=<p>Hi,</p><p>Kindly find attached the day's cumulative sales report, sent because you requested it via WhatsApp.</p><p>Best regards,<br>Data Analytics Automation</p>",
+        "options": {
+          "attachments": "data"
+        }
+      },
+      "id": "76af4868-3b2d-49af-a089-2b863dd0b4b9",
+      "name": "Send Report Email (WhatsApp Request)",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1904,
+        48
+      ],
+      "webhookId": "7c6a1026-3ab3-4828-8659-87e3d12f6405",
+      "credentials": {
+        "smtp": {
+          "id": "ViOqYQutgjPyB7ac",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "8fafcc0d-528b-4ae3-82dd-0ae0fc84591a",
+              "leftValue": "={{ $json.outcome }}",
+              "rightValue": "not_registered",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "43ab570f-5faa-4a7b-9f63-3e39acad7d59",
+      "name": "If - Not Registered?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        640,
+        448
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:3000/api/sendText",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Api-Key",
+              "value": "YOUR_WAHA_API_KEY"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { session: \"default\", chatId: $('Parse & Decide').item.json.chatId, text: \"Hi, this number isn't registered to receive reports yet. Please contact the admin to get set up.\" } }}",
+        "options": {}
+      },
+      "id": "2760e1b6-159e-4a08-acf4-20b6910a5ebe",
+      "name": "WAHA Send Text (Refuse)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        896,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "28687261-2fc3-4430-9b34-aa3a51c2e788",
+              "leftValue": "={{ $json.outcome }}",
+              "rightValue": "no_report",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "eec622eb-4eb3-45e5-8b06-5bd09172bf66",
+      "name": "If - No Report Yet?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        640,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:3000/api/sendText",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Api-Key",
+              "value": "YOUR_WAHA_API_KEY"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { session: \"default\", chatId: $('Parse & Decide').item.json.chatId, text: \"No report has been generated yet today \\u2014 please check back a little later.\" } }}",
+        "options": {}
+      },
+      "id": "1f8dcdb6-01bb-4731-8e86-6f2080ce148f",
+      "name": "WAHA Send Text (No Report)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        896,
+        608
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const { execFileSync } = require('child_process');\n\nconst filePath = $('Parse & Decide').item.json.filePath;\nconst fileName = filePath.split('\\\\').pop().split('/').pop();\nconst mimetype = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';\n\nconst psCmd = \"[Convert]::ToBase64String([IO.File]::ReadAllBytes('\" + filePath.replace(/'/g, \"''\") + \"'))\";\nconst data = execFileSync('powershell.exe', ['-NoProfile', '-Command', psCmd], { maxBuffer: 1024 * 1024 * 100 }).toString('utf8').trim();\n\nreturn [{\n  json: {\n    session: 'default',\n    chatId: $('Parse & Decide').item.json.chatId,\n    file: {\n      mimetype,\n      filename: fileName,\n      data,\n    },\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1392,
+        48
+      ],
+      "id": "16e0dfb3-10d0-4044-8ab0-9995f3b9450f",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -144,
+        -144
+      ],
+      "id": "112c3cbf-0008-4940-aa5f-a67f35551d3d",
+      "name": "Sticky Note"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook - WhatsApp Incoming": {
+      "main": [
+        [
+          {
+            "node": "Parse & Decide",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse & Decide": {
+      "main": [
+        [
+          {
+            "node": "If - Send Report?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - Send Report?": {
+      "main": [
+        [
+          {
+            "node": "Read Report File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If - Not Registered?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Report File": {
+      "main": [
+        [
+          {
+            "node": "WAHA Send Text (Report)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Report Email (WhatsApp Request)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WAHA Send Text (Report)": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WAHA Send File": {
+      "main": [
+        []
+      ]
+    },
+    "Send Report Email (WhatsApp Request)": {
+      "main": [
+        []
+      ]
+    },
+    "If - Not Registered?": {
+      "main": [
+        [
+          {
+            "node": "WAHA Send Text (Refuse)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If - No Report Yet?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WAHA Send Text (Refuse)": {
+      "main": [
+        []
+      ]
+    },
+    "If - No Report Yet?": {
+      "main": [
+        [
+          {
+            "node": "WAHA Send Text (No Report)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "WAHA Send Text (No Report)": {
+      "main": [
+        []
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "WAHA Send File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "3052d549-f4fa-42ca-873d-860de45aa731",
+  "meta": {},
+  "nodeGroups": [],
+  "id": "QIoAwzDJkLmAJ5qe",
+  "tags": []
+}

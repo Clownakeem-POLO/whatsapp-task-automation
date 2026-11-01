@@ -1,0 +1,165 @@
+{
+  "name": "WhatsApp Task Reminders - Scheduled",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        208,
+        144
+      ],
+      "id": "934d85d5-842d-434e-9486-1707aa0cfd43",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.clickup.com/api/v2/list/YOUR_CLICKUP_LIST_ID/task",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "include_closed",
+              "value": "false"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        560,
+        144
+      ],
+      "id": "e559028d-573d-4a5c-b72c-24e8bd462885",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "5Cwe4Bxkw2Nbfwmx",
+          "name": "ClickUp API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst data = $getWorkflowStaticData('global');\nif (!data.taskState) data.taskState = {};\n\nconst PERIODIC_HOURS = { daily: 24, every_8_hours: 8, multiple_times: 4 };\nconst ONETIME_LEAD_HOURS = { '1_week_before': 168, '1_hour_before': 1, '2_hours_before': 2 };\n\nconst now = Date.now();\nconst out = [];\n\nfor (const item of items) {\n  const task = item.json;\n  if (!task.id) continue;\n  const desc = task.description || task.text_content || '';\n  const m = desc.match(/\\[BOTMETA\\]([\\s\\S]*?)\\[\\/BOTMETA\\]/);\n  if (!m) continue;\n  let meta;\n  try { meta = JSON.parse(m[1]); } catch (e) { continue; }\n  if (!meta.reminder_admin && !meta.reminder_assignee) continue;\n\n  const dueMs = task.due_date ? Number(task.due_date) : null;\n  const isClosed = task.status && task.status.type === 'closed';\n  if (isClosed) continue;\n  const overdue = dueMs ? now > dueMs : false;\n  const dueText = dueMs ? (new Date(dueMs).toDateString() + ' ' + new Date(dueMs).toLocaleTimeString()) : 'no due date';\n  const priorityName = (task.priority && task.priority.priority) ? task.priority.priority : 'normal';\n\n  if (!data.taskState[task.id]) data.taskState[task.id] = {};\n  const state = data.taskState[task.id];\n\n  function periodicDue(cadence, lastTsKey) {\n    const hrs = PERIODIC_HOURS[cadence];\n    if (!hrs) return false;\n    const last = state[lastTsKey] || 0;\n    if (now - last >= hrs * 3600 * 1000) { state[lastTsKey] = now; return true; }\n    return false;\n  }\n  function customDue(minutes, lastTsKey) {\n    const ms = Number(minutes) * 60 * 1000;\n    if (!ms || ms <= 0) return false;\n    const last = state[lastTsKey] || 0;\n    if (now - last >= ms) { state[lastTsKey] = now; return true; }\n    return false;\n  }\n  function onetimeDue(cadence, sentKey) {\n    const leadHrs = ONETIME_LEAD_HOURS[cadence];\n    if (!leadHrs || !dueMs) return false;\n    if (state[sentKey]) return false;\n    const windowStart = dueMs - leadHrs * 3600 * 1000;\n    if (now >= windowStart && now < dueMs) { state[sentKey] = true; return true; }\n    return false;\n  }\n\n  if (meta.reminder_admin) {\n    let adminDue = false;\n    if (meta.reminder_admin === 'custom' && meta.reminder_admin_minutes) adminDue = customDue(meta.reminder_admin_minutes, 'last_admin_ts');\n          else if (PERIODIC_HOURS[meta.reminder_admin]) adminDue = periodicDue(meta.reminder_admin, 'last_admin_ts');\n          else adminDue = onetimeDue(meta.reminder_admin, 'admin_onetime_sent');\n    if (adminDue) {\n      out.push({ json: { whatsapp_payload: {\n        messaging_product: 'whatsapp', to: '2547XXXXXXXX', type: 'text',\n        text: { body: 'Reminder: Task \"' + task.name + '\" is due ' + dueText + '. Priority: ' + priorityName + '.' + (overdue ? ' This task is now OVERDUE.' : '') }\n      } } });\n    }\n  }\n\n  if (meta.reminder_assignee && meta.assignee_whatsapp && meta.assignee_whatsapp !== '2547XXXXXXXX') {\n    let assigneeDue = false;\n    let isOverdueCheck = false;\n    if (overdue) {\n      const lastOverdue = state.last_overdue_ts || 0;\n      if (now - lastOverdue >= 4 * 3600 * 1000) { state.last_overdue_ts = now; assigneeDue = true; isOverdueCheck = true; }\n    } else {\n      if (meta.reminder_assignee === 'custom' && meta.reminder_assignee_minutes) assigneeDue = customDue(meta.reminder_assignee_minutes, 'last_assignee_ts');\n          else if (PERIODIC_HOURS[meta.reminder_assignee]) assigneeDue = periodicDue(meta.reminder_assignee, 'last_assignee_ts');\n          else assigneeDue = onetimeDue(meta.reminder_assignee, 'assignee_onetime_sent');\n    }\n    if (assigneeDue) {\n      if (isOverdueCheck) {\n        out.push({ json: { whatsapp_payload: {\n          messaging_product: 'whatsapp', to: meta.assignee_whatsapp, type: 'interactive',\n          interactive: { type: 'button', body: { text: 'Have you completed \"' + task.name + '\"? It was due ' + dueText + '.' },\n            action: { buttons: [\n              { type: 'reply', reply: { id: 'done_yes_' + task.id, title: 'Yes' } },\n              { type: 'reply', reply: { id: 'done_no_' + task.id, title: 'Not yet' } }\n            ] } }\n        } } });\n      } else {\n        out.push({ json: { whatsapp_payload: {\n          messaging_product: 'whatsapp', to: meta.assignee_whatsapp, type: 'text',\n          text: { body: 'Reminder: Task \"' + task.name + '\" is due ' + dueText + '. Priority: ' + priorityName + '.' }\n        } } });\n      }\n    }\n  }\n}\n\nreturn out;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        912,
+        144
+      ],
+      "id": "ab9d89f3-ba1d-4104-8db9-ac5f6d0ab090",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/YOUR_PHONE_NUMBER_ID/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_WHATSAPP_ACCESS_TOKEN"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.whatsapp_payload }}",
+        "options": {}
+      },
+      "id": "b1f2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+      "name": "Send WhatsApp Reminder",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1264,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return ($json.tasks || []).map(t => ({ json: t }));"
+      },
+      "id": "a7000000-0000-4000-8000-000000000001",
+      "name": "Split Tasks",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        656,
+        304
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Split Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Tasks": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "195d6c04-334c-4e27-b962-c02b1763fc39",
+  "meta": {},
+  "nodeGroups": [],
+  "id": "DuajSQBns97LSysF",
+  "tags": []
+}

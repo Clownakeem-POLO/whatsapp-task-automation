@@ -1,0 +1,3799 @@
+{
+  "name": "WhatsApp Official API - Webhook",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "whatsapp-official",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -272,
+        -592
+      ],
+      "id": "7f3d4049-44c0-40f5-b375-59262bca03fa",
+      "name": "GET - Verify Webhook",
+      "webhookId": "a7930bd6-08d6-445e-b6ee-d19636a2535e"
+    },
+    {
+      "parameters": {
+        "jsCode": "const q = $json.query || {};\nconst VERIFY_TOKEN = 'mrk-wa-verify-9f21';\nconst ok = q['hub.mode'] === 'subscribe' && q['hub.verify_token'] === VERIFY_TOKEN;\nreturn [{ json: { verified: ok, challenge: q['hub.challenge'] || '' } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -48,
+        -592
+      ],
+      "id": "7fb96a68-8618-4e9a-b8c4-47ae5885d5d5",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.challenge }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/plain"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        192,
+        -592
+      ],
+      "id": "f1b74703-8018-4525-8192-9fc84dd2e042",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-official",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1360,
+        256
+      ],
+      "id": "258f768c-42e4-4e71-ab1f-1ac901820082",
+      "name": "Webhook",
+      "webhookId": "5cbc5137-6d85-414c-9e58-c1febb78a55b"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body || {};\nconst entry = (body.entry || [])[0] || {};\nconst change = (entry.changes || [])[0] || {};\nconst value = change.value || {};\nconst messages = value.messages || [];\n\nif (messages.length === 0) {\n  return [{ json: { isMessage: false, raw: value } }];\n}\n\nconst msg = messages[0];\nconst contact = (value.contacts || [])[0] || {};\n\nlet text = '';\nlet interactiveId = '';\nlet audioId = '';\nif (msg.type === 'text') {\n  text = (msg.text && msg.text.body) || '';\n} else if (msg.type === 'interactive') {\n  const ir = msg.interactive || {};\n  if (ir.list_reply) { text = ir.list_reply.title || ''; interactiveId = ir.list_reply.id || ''; }\n  else if (ir.button_reply) { text = ir.button_reply.title || ''; interactiveId = ir.button_reply.id || ''; }\n} else if (msg.type === 'audio') {\n  audioId = (msg.audio && msg.audio.id) || '';\n}\n\nreturn [{\n  json: {\n    isMessage: true,\n    from: msg.from,\n    messageId: msg.id,\n    type: msg.type,\n    text: text,\n    interactiveId: interactiveId,\n    audioId: audioId,\n    contactName: contact.profile ? contact.profile.name : '',\n    phoneNumberId: value.metadata ? value.metadata.phone_number_id : '',\n    timestamp: msg.timestamp\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1136,
+        256
+      ],
+      "id": "c5c9bce5-3986-4a8e-8071-0d3fe4691c8c",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{  $json.phoneNumberId }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_WHATSAPP_ACCESS_TOKEN"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "messaging_product",
+              "value": "whatsapp"
+            },
+            {
+              "name": "to",
+              "value": "={{ $json.from }}"
+            },
+            {
+              "name": "type",
+              "value": "text"
+            },
+            {
+              "name": "text",
+              "value": "={{  { \"body\": \"Thanks for your message! We will get back to you soon.\" } }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1328,
+        -576
+      ],
+      "id": "0553c5d3-40fe-408e-b2c3-27a713ccca49",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "59b29b98-b751-48ab-9d1d-c19828893be3",
+              "leftValue": "={{ ($json.text || '').toLowerCase().includes('cumulative report') }}",
+              "rightValue": "text",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        816,
+        0
+      ],
+      "id": "7a9970bf-e5de-4363-ae80-feb635427575",
+      "name": "If - Cumulative Report?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const { execFileSync } = require('child_process');\nconst CONTACTS_FILE = \"D:\\\\Automation\\\\automation\\\\config\\\\whatsapp_contacts.json\";\nconst REPORTS_DIR = \"D:\\\\Automation\\\\automation\\\\daily\\\\reports\";\n\nconst item = $input.first().json;\nconst phone = String(item.from || '').replace(/\\D/g, '');\n\nlet outcome = 'not_registered';\nlet email = '';\nlet filePath = '';\n\nfunction cleanLine(s) {\n    return s.replace(/^\\uFEFF/, '').replace(/[\\u0000-\\u001F\\u200B\\uFEFF]/g, '').trim();\n}\n\nlet contacts = {};\ntry {\n    const raw = execFileSync('cmd.exe', ['/c', 'type', CONTACTS_FILE], { encoding: 'utf-8' });\n    contacts = JSON.parse(raw.replace(/^\\uFEFF/, ''));\n} catch (e) {\n    contacts = {};\n}\n\nconst entry = contacts[phone];\nif (entry && entry.email) {\n    email = entry.email;\n    try {\n          const out = execFileSync('cmd.exe', ['/c', 'dir', '/b', '/o-d', REPORTS_DIR], { encoding: 'utf-8' });\n          const files = out.replace(/^\\uFEFF/, '').split(/\\r?\\n/).map(cleanLine).filter(s => s.toLowerCase().endsWith('.xlsx'));\n          if (files.length) {\n                  filePath = REPORTS_DIR + '\\\\' + files[0];\n                  outcome = 'send_report';\n          } else {\n                  outcome = 'no_report';\n          }\n    } catch (e) {\n          outcome = 'no_report';\n    }\n} else {\n    outcome = 'not_registered';\n}\n\nreturn [{\n    json: {\n          outcome,\n          phone,\n          email,\n          filePath,\n          from: item.from,\n          phoneNumberId: item.phoneNumberId,\n          messageId: item.messageId,\n          text: item.text,\n    }\n}]"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1264,
+        -32
+      ],
+      "id": "9d341acb-e06b-40c0-af35-16cda2264728",
+      "name": "Lookup Report & Contact"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "16fd3c9d-dc2c-4e36-a8ea-a59b9788aaa6",
+              "leftValue": "=  {{ $json.isMessage }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -912,
+        256
+      ],
+      "id": "64bbba00-0af2-45f9-8609-326c6c873e4e",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.outcome === 'send_report' }}",
+                    "rightValue": "send_report",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    },
+                    "id": "9731d7c4-3a23-49e7-8f5f-e6c88fde303c"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Send Report"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "58368353-dc43-4a9d-94b7-72ad897f242b",
+                    "leftValue": "={{ $json.outcome === 'not_registered' }}",
+                    "rightValue": "not_registered",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Not Registered"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "801890d5-75cc-4558-94fe-3ebacff78336",
+                    "leftValue": "={{ $json.outcome === 'no_report' }}",
+                    "rightValue": "no_report",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "No Report Yet"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        1664,
+        144
+      ],
+      "id": "2e0a435a-0dc8-42f9-b98e-5b4564107833",
+      "name": "Switch - Report Outcome"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{  $json.phoneNumberId }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_WHATSAPP_ACCESS_TOKEN"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "messaging_product",
+              "value": "whatsapp"
+            },
+            {
+              "name": "to",
+              "value": "={{ $json.from }}"
+            },
+            {
+              "name": "type",
+              "value": "text"
+            },
+            {
+              "name": "text",
+              "value": "={{  { \"body\": \"This number isn't registered for automated reports yet. Please contact us to get set up.\"} }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2496,
+        352
+      ],
+      "id": "2db42c1d-e6d7-4744-b4eb-19ac960ecae6",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{  $json.phoneNumberId }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_WHATSAPP_ACCESS_TOKEN"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "messaging_product",
+              "value": "whatsapp"
+            },
+            {
+              "name": "to",
+              "value": "={{ $json.from }}"
+            },
+            {
+              "name": "type",
+              "value": "text"
+            },
+            {
+              "name": "text",
+              "value": "={{  { \"body\": \"No cumulative report is available yet. Please check back later.\"} }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2016,
+        368
+      ],
+      "id": "b5c91902-8b97-492e-bd07-a033862322b7",
+      "name": "HTTP Request2"
+    },
+    {
+      "parameters": {
+        "fileSelector": "={{  $json.filePath  }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        1952,
+        -80
+      ],
+      "id": "eddace42-a67a-42af-87da-0940e8098315",
+      "name": "Read Report File"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{  $('Lookup Report & Contact').item.json.phoneNumberId  }}/media",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_WHATSAPP_ACCESS_TOKEN"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "messaging_product",
+              "value": "whatsapp"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2272,
+        32
+      ],
+      "id": "92966bc2-3a7d-4192-bc10-076fb61c86bc",
+      "name": "Upload Report Media"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{  $('Lookup Report & Contact').item.json.phoneNumberId }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_WHATSAPP_ACCESS_TOKEN"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "messaging_product",
+              "value": "whatsapp"
+            },
+            {
+              "name": "to",
+              "value": "={{  $('Lookup Report & Contact').item.json.from }}"
+            },
+            {
+              "name": "type",
+              "value": "document"
+            },
+            {
+              "name": "document",
+              "value": "={{  { \"id\": $json.id, \"caption\": \"Cumulative Sales Report\"} }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2528,
+        64
+      ],
+      "id": "7dbded36-a993-458b-b6a8-7c927d51dd35",
+      "name": "Send Report Document"
+    },
+    {
+      "parameters": {
+        "fromEmail": "admin@example.com",
+        "toEmail": "={{ $('Lookup Report & Contact').first().json.email }}",
+        "subject": "Cumulative Sales Report - {{ $now.format('dd LL yyyy') }} (requested via WhatsApp)",
+        "html": "<p>Hi,</p><p>Please find attached the latest cumulative sales report, requested via WhatsApp.</p><p>Best regards,<br>Automated Reporting</p>",
+        "options": {
+          "fileAttachments": "data"
+        }
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        2256,
+        -208
+      ],
+      "id": "d5c8e00c-87d7-4f2d-964e-9fad9e33b6bd",
+      "name": "Send Report Email",
+      "webhookId": "2a901006-8ce2-4aa2-9c7b-0a9bb9cb6143",
+      "credentials": {
+        "smtp": {
+          "id": "ViOqYQutgjPyB7ac",
+          "name": "SMTP account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "5c8f145d-c123-483e-bdcb-3a25dfe991ac",
+              "leftValue": "={{ $json.from }}",
+              "rightValue": "2547XXXXXXXX",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "5c8f145d-c123-483e-bdcb-3a25dfe991ad",
+              "leftValue": "={{ $json.from }}",
+              "rightValue": "2547XXXXXXXX",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "24b5c0fa-5600-420b-95c7-0c1af8362f7b",
+              "leftValue": "={{ $json.from }}",
+              "rightValue": "2547XXXXXXXX",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1312,
+        496
+      ],
+      "id": "b2d2bb43-043a-4bd7-84fb-605a8f9bc675",
+      "name": "If - Admin ClickUp Command?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:11434/api/generate",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "qwen2.5:7b-instruct"
+            },
+            {
+              "name": "prompt",
+              "value": "=You are an assistant for a WhatsApp task-management bot. Classify the message below into exactly one intent and extract the relevant fields.\n\nSender role: {{ $json.sender_role }} (admin = the person who delegates/creates tasks; assignee = the person tasks get assigned to).\n\nIntents:\n- CREATE_TASK: sender is assigning or creating a new task for someone, OR setting a reminder/task/to-do for themselves. Recognize varied natural phrasing, not just \"assign X to Y\" — also \"remind me to X\", \"set a reminder to X\", \"I need to X by <time>\", \"don't let me forget to X\", \"note down that I have to X\", \"tell Y to do X\".\n- STATUS_UPDATE: sender is reporting progress or completion on an existing task (e.g. \"I've started\", \"done\", \"completed the report\", \"finished it\", \"wrapped up the pipeline thing\").\n- RESCHEDULE: sender wants to change the due date/deadline of an existing task (e.g. \"adjust deadline to tomorrow\", \"push it to 24 hours\").\n- ACKNOWLEDGE: sender is simply confirming they saw/received a task, without reporting progress or completion (e.g. \"noted\", \"ok\", \"okay\", \"got it\", \"sure\", \"will do\", \"on it\", \"roger\", \"alright\").\n- OTHER: anything else (greetings, unclear requests, unrelated questions).\n\nRespond with ONLY a JSON object containing exactly these keys:\nassignee (CREATE_TASK only: lowercase first name of who the task is for if mentioned, else empty string — leave empty if the sender is reminding only themselves with no name mentioned)\ntask (CREATE_TASK only: short description of the task, else empty string)\ndue_date (CREATE_TASK only: due date/time exactly as mentioned e.g. \"6pm today\", else empty string if not mentioned)\npriority (CREATE_TASK only: one of urgent/high/normal/low if mentioned, else empty string)\ntask_reference (STATUS_UPDATE, RESCHEDULE, or ACKNOWLEDGE only: short keywords identifying which task if mentioned, else empty string)\nnew_status (STATUS_UPDATE only: one of \"started\" or \"completed\", else empty string)\nnew_due_date (RESCHEDULE only: the new due date/time exactly as mentioned, else empty string)\nintent (one of CREATE_TASK, STATUS_UPDATE, RESCHEDULE, ACKNOWLEDGE, CANCEL, GREETING, OTHER)\n\nCANCEL = the sender wants to stop/undo a task or in-progress request (e.g. \"never mind\", \"forget it\", \"cancel that\", \"don't do it\", \"scrap that task\", \"stop\", \"I changed my mind\").\nGREETING = a simple greeting or small talk with no task content (e.g. \"hi\", \"hello\", \"hey there\", \"good morning\", \"how are you\").\n\nBase your answer only on the actual message text shown below, not on any prior example.\n\nMessage: {{  $json.text }}\nOutput:"
+            },
+            {
+              "name": "stream",
+              "value": "={{ false }}"
+            },
+            {
+              "name": "format",
+              "value": "json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        3584,
+        3648
+      ],
+      "id": "403ad19b-d915-42e6-b095-ecedf269a3f7",
+      "name": "Ollama - Parse Command"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\nlet parsed;\ntry {\n    parsed = JSON.parse(raw.response);\n} catch (e) {\n    parsed = { assignee: '', task: '', due_date: '' };\n}\n\nconst assignees = {\n    alex: {\n        name: 'Alex',\n        clickupUserId: 112516349,\n        email: 'teammate1@example.com',\n        whatsapp: '+2547XXXXXXXX'\n    },\n    sam: {\n        name: 'Sam',\n        clickupUserId: 112516348,\n        email: 'teammate2@example.com',\n        whatsapp: '+2547XXXXXXXX'\n    }\n};\n\nconst key = (parsed.assignee || '').toLowerCase().trim();\nconst senderInfo = $('Determine Sender Role').item.json;\nconst selfWords = ['me','myself','i','self'];\nconst isSelfRef = !!key && (selfWords.includes(key) || key === (senderInfo.sender_name || '').toLowerCase());\nlet assignee = assignees[key] || null;\nif (!assignee && isSelfRef) {\n  const selfKey = (senderInfo.sender_name || '').toLowerCase();\n  const knownSelf = assignees[selfKey];\n  assignee = knownSelf || { name: senderInfo.sender_name, clickupUserId: 222123575, email: 'admin@example.com', whatsapp: senderInfo.from };\n}\n\nfunction parseDueDate(text) {\n    if (!text) return null;\n    const t = text.toLowerCase().trim();\n    const days = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];\n    const now = new Date();\n\n    const timeMatch = t.match(/(\\d{1,2})(?::(\\d{2}))?\\s*(am|pm)/);\n    let hours = null, minutes = 0;\n    if (timeMatch) {\n        hours = parseInt(timeMatch[1], 10);\n        minutes = timeMatch[2] ? parseInt(timeMatch[2], 10) : 0;\n        const meridiem = timeMatch[3];\n        if (meridiem === 'pm' && hours !== 12) hours += 12;\n        if (meridiem === 'am' && hours === 12) hours = 0;\n    }\n\n    function applyTimeOrEndOfDay(d) {\n        if (hours !== null) {\n            d.setHours(hours, minutes, 0, 0);\n        } else {\n            d.setHours(23, 59, 0, 0);\n        }\n        return d.getTime();\n    }\n\n    if (t.includes('today')) {\n        const d = new Date(now);\n        return applyTimeOrEndOfDay(d);\n    }\n    if (t.includes('tomorrow')) {\n        const d = new Date(now);\n        d.setDate(d.getDate() + 1);\n        return applyTimeOrEndOfDay(d);\n    }\n\n    const cleaned = t.replace(/^next\\s+/, '').replace(/^this\\s+/, '');\n    const dayIndex = days.findIndex(day => cleaned.includes(day));\n    if (dayIndex !== -1) {\n        const d = new Date(now);\n        let diff = (dayIndex - d.getDay() + 7) % 7;\n        if (diff === 0) diff = 7;\n        d.setDate(d.getDate() + diff);\n        return applyTimeOrEndOfDay(d);\n    }\n\n    if (hours !== null) {\n        const d = new Date(now);\n        return applyTimeOrEndOfDay(d);\n    }\n\n    const parsedTime = Date.parse(text);\n    if (!isNaN(parsedTime)) return parsedTime;\n    return null;\n}\n\nfunction hasExplicitTime(text) {\n  const s = (text || '').toLowerCase();\n  return /\\d{1,2}(:\\d{2})?\\s*(am|pm)/.test(s) || /\\b([01]?\\d|2[0-3]):[0-5]\\d\\b/.test(s) || /\\bnoon\\b/.test(s) || /\\bmidnight\\b/.test(s);\n}\nconst dueDateMs = parseDueDate(parsed.due_date);\n\nreturn [{\n    json: {\n        assignee_key: key,\n        task: parsed.task || '',\n        due_date: parsed.due_date || '',\n        due_date_ms: dueDateMs,\n        due_time_explicit: hasExplicitTime(parsed.due_date),\n        assignee_found: !!assignee,\n        assignee_name: assignee ? assignee.name : '',\n        assignee_clickup_id: assignee ? assignee.clickupUserId : null,\n        assignee_email: assignee ? assignee.email : '',\n        assignee_whatsapp: assignee ? assignee.whatsapp : ''\n    }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4752,
+        4864
+      ],
+      "id": "3cd0d1a3-0941-4822-b77c-ed52109d3673",
+      "name": "Lookup Assignee"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.clickup.com/api/v2/list/YOUR_CLICKUP_LIST_ID/task",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "name",
+              "value": "={{  $json.task }}"
+            },
+            {
+              "name": "description",
+              "value": "={{  'Created via WhatsApp assistant. Due: ' + $json.due_date }}"
+            },
+            {
+              "name": "assignees",
+              "value": "={{  [$json.assignee_clickup_id] }}"
+            },
+            {
+              "name": "due_date",
+              "value": "={{  $json.due_date_ms }}"
+            },
+            {
+              "name": "due_date_time",
+              "value": "={{ true }}"
+            },
+            {
+              "name": "priority",
+              "value": "={{ ({urgent:1,high:2,normal:3,low:4})[$('Parse Intent').item.json.parsed_priority] || 3 }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        7616,
+        3216
+      ],
+      "id": "a2d56497-cd68-48d1-9ce2-f8bc129a4c55",
+      "name": "HTTP Request3",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "5Cwe4Bxkw2Nbfwmx",
+          "name": "ClickUp API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{  $('Code in JavaScript1').item.json.phoneNumberId }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_WHATSAPP_ACCESS_TOKEN"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "messaging_product",
+              "value": "whatsapp"
+            },
+            {
+              "name": "to",
+              "value": "={{  $('Code in JavaScript1').item.json.from }}"
+            },
+            {
+              "name": "type",
+              "value": "text"
+            },
+            {
+              "name": "text",
+              "value": "={{  { \"body\": \"✅ Task created: \" + $json.name + \". Assigned to \" + $('Lookup Assignee').item.json.assignee_name + \".\" } }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        8512,
+        3520
+      ],
+      "id": "072e0f0c-5a50-4a40-b762-d6318d3cafdf",
+      "name": "WhatsApp - Confirm Task Created"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{  $('Code in JavaScript1').item.json.phoneNumberId }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_WHATSAPP_ACCESS_TOKEN"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  messaging_product: \"whatsapp\",\n  to: $('Lookup Assignee').item.json.assignee_whatsapp,\n  type: \"template\",\n  template: {\n    name: \"task_assigned_notification\",\n    language: { code: \"en\" },\n    components: [\n      {\n        type: \"body\",\n        parameters: [\n          { type: \"text\", text: $('Lookup Assignee').item.json.assignee_name },\n          { type: \"text\", text: $json.name },\n          { type: \"text\", text: $json.due_date ? new Date(Number($json.due_date)).toDateString() : \"no due date set\" },\n          { type: \"text\", text: \"Persival\" }\n        ]\n      }\n    ]\n  }\n} }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        8432,
+        3216
+      ],
+      "id": "c4ae0edf-78a5-4efb-8508-08e96ece6bff",
+      "name": "WhatsApp - Notify Assignee"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nreturn items.map(item => {\n  const from = item.json.from;\n  let sender_role = 'unknown';\n  let sender_name = '';\n  if (from === '2547XXXXXXXX') { sender_role = 'admin'; sender_name = 'Persival'; }\n  else if (from === '2547XXXXXXXX') { sender_role = 'assignee'; sender_name = 'Alex'; }\n  else if (from === '2547XXXXXXXX') { sender_role = 'assignee'; sender_name = 'Sam'; }\n  return { json: Object.assign({}, item.json, { sender_role, sender_name }) };\n});"
+      },
+      "id": "b2000000-0000-4000-8000-000000000001",
+      "name": "Determine Sender Role",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1664,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nreturn items.map(item => {\n  let parsed = {};\n  try { parsed = JSON.parse(item.json.response); } catch (e) { parsed = {}; }\n  const intent = (parsed.intent || 'OTHER').toUpperCase();\n  return { json: Object.assign({}, item.json, {\n    intent: intent,\n    parsed_assignee: parsed.assignee || '',\n    parsed_task: parsed.task || '',\n    parsed_due_date: parsed.due_date || '',\n    parsed_priority: (parsed.priority || '').toLowerCase(),\n    parsed_task_reference: parsed.task_reference || '',\n    parsed_new_status: (parsed.new_status || '').toLowerCase(),\n    parsed_new_due_date: parsed.new_due_date || ''\n  }) };\n});"
+      },
+      "id": "b2000000-0000-4000-8000-000000000002",
+      "name": "Parse Intent",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3760,
+        3744
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "c1",
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "CREATE_TASK",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "c2",
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "STATUS_UPDATE",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "c3",
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "RESCHEDULE",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "c4",
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "ACKNOWLEDGE",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "c5",
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "CANCEL",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "c6",
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "GREETING",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "b2000000-0000-4000-8000-000000000003",
+      "name": "Switch - Intent",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        4016,
+        4128
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.clickup.com/api/v2/list/YOUR_CLICKUP_LIST_ID/task",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "include_closed",
+              "value": "false"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c3000000-0000-4000-8000-000000000001",
+      "name": "Find Open Tasks",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        4768,
+        5088
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "5Cwe4Bxkw2Nbfwmx",
+          "name": "ClickUp API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const pi = $('Parse Intent').item.json;\nconst dsr = $('Determine Sender Role').item.json;\nconst ref = (pi.parsed_task_reference || '').toLowerCase();\nconst tasks = $json.tasks || [];\n\nconst ALEX_ID = '112516349';\nconst PERSIVAL_ID = '222123575';\nconst SAM_ID = '112516348';\nconst NAME_TO_ID = { Persival: PERSIVAL_ID, Alex: ALEX_ID, Sam: SAM_ID };\nconst senderClickupId = NAME_TO_ID[dsr.sender_name] || (dsr.sender_role === 'admin' ? PERSIVAL_ID : ALEX_ID);\n\nconst myTasks = tasks.filter(t => (t.assignees || []).some(a => String(a.id) === senderClickupId));\nconst searchPool = myTasks.length ? myTasks : tasks;\n\nlet match = null;\nif (ref) {\n  match = searchPool.find(t => t.name.toLowerCase().includes(ref) || ref.includes(t.name.toLowerCase()));\n  if (!match) {\n    const refWords = ref.split(/\\s+/).filter(w => w.length > 2);\n    match = searchPool.find(t => refWords.some(w => t.name.toLowerCase().includes(w)));\n  }\n}\nif (!match && myTasks.length === 1) {\n  match = myTasks[0];\n}\nreturn [{ json: {\n  from: dsr.from,\n  phoneNumberId: dsr.phoneNumberId,\n  parsed_task_reference: pi.parsed_task_reference || '',\n  parsed_new_status: (pi.parsed_new_status || '').toLowerCase(),\n  matched_task_id: match ? match.id : '',\n  matched_task_name: match ? match.name : '',\n  matched_task_priority: (match && match.priority && match.priority.priority) ? match.priority.priority : 'normal',\n  matched_task_url: match ? match.url : '',\n  match_found: match ? true : false,\n  my_open_tasks: myTasks.map(t => t.name)\n} }];"
+      },
+      "id": "c3000000-0000-4000-8000-000000000002",
+      "name": "Match Task - Status Update",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6192,
+        4336
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "x1",
+              "leftValue": "={{ $json.match_found }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "c3000000-0000-4000-8000-000000000003",
+      "name": "If - Task Matched (Status)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        6896,
+        4304
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{ $('Code in JavaScript1').item.json.phoneNumberId }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_WHATSAPP_ACCESS_TOKEN"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { messaging_product: \"whatsapp\", to: $('Match Task - Status Update').item.json.from, type: \"text\", text: { body: ($('Match Task - Status Update').item.json.my_open_tasks.length ? \"I couldn't tell which task you meant. Your open tasks are:\\n- \" + $('Match Task - Status Update').item.json.my_open_tasks.join(\"\\n- \") + \"\\n\\nReply with the task name.\" : \"Sorry, I couldn't find a matching task for \\\"\" + $('Match Task - Status Update').item.json.parsed_task_reference + \"\\\". Can you tell me the exact task name?\") } } }}",
+        "options": {}
+      },
+      "id": "c3000000-0000-4000-8000-000000000004",
+      "name": "WhatsApp - Task Not Found Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        7088,
+        4448
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "x1",
+              "leftValue": "={{ $json.parsed_new_status }}",
+              "rightValue": "completed",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "c3000000-0000-4000-8000-000000000005",
+      "name": "If - Status Completed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        7312,
+        4096
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://api.clickup.com/api/v2/task/{{ $json.matched_task_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { status: \"complete\" } }}",
+        "options": {}
+      },
+      "id": "c3000000-0000-4000-8000-000000000006",
+      "name": "Update Task - Complete",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        7648,
+        3856
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "5Cwe4Bxkw2Nbfwmx",
+          "name": "ClickUp API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{ $('Code in JavaScript1').item.json.phoneNumberId }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_WHATSAPP_ACCESS_TOKEN"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { messaging_product: \"whatsapp\", to: $('Match Task - Status Update').item.json.from, type: \"text\", text: { body: \"Nice work! Marked \\\"\" + $('Match Task - Status Update').item.json.matched_task_name + \"\\\" as completed.\" } } }}",
+        "options": {}
+      },
+      "id": "c3000000-0000-4000-8000-000000000007",
+      "name": "WhatsApp - Confirm Completed to Alex",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        8000,
+        3856
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{ $('Code in JavaScript1').item.json.phoneNumberId }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_WHATSAPP_ACCESS_TOKEN"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { messaging_product: \"whatsapp\", to: \"2547XXXXXXXX\", type: \"text\", text: { body: \"Alex has completed the task: \\\"\" + $('Match Task - Status Update').item.json.matched_task_name + \"\\\".\" } } }}",
+        "options": {}
+      },
+      "id": "c3000000-0000-4000-8000-000000000008",
+      "name": "WhatsApp - Notify Persival Completed",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        8368,
+        3872
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://api.clickup.com/api/v2/task/{{ $json.matched_task_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { status: \"in progress\" } }}",
+        "options": {}
+      },
+      "id": "c3000000-0000-4000-8000-000000000009",
+      "name": "Update Task - In Progress",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        7888,
+        4432
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "5Cwe4Bxkw2Nbfwmx",
+          "name": "ClickUp API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{ $('Code in JavaScript1').item.json.phoneNumberId }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_WHATSAPP_ACCESS_TOKEN"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { messaging_product: \"whatsapp\", to: $('Match Task - Status Update').item.json.from, type: \"text\", text: { body: \"Got it — marked \\\"\" + $('Match Task - Status Update').item.json.matched_task_name + \"\\\" as in progress. Let me know when it's done!\" } } }}",
+        "options": {}
+      },
+      "id": "c3000000-0000-4000-8000-00000000000a",
+      "name": "WhatsApp - Confirm Started to Alex",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        8144,
+        4432
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.clickup.com/api/v2/list/YOUR_CLICKUP_LIST_ID/task",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "include_closed",
+              "value": "false"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d4000000-0000-4000-8000-000000000001",
+      "name": "Find Open Tasks (Reschedule)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        4768,
+        5312
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "5Cwe4Bxkw2Nbfwmx",
+          "name": "ClickUp API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const pi = $('Parse Intent').item.json;\nconst dsr = $('Determine Sender Role').item.json;\nconst ref = (pi.parsed_task_reference || '').toLowerCase();\nconst tasks = $json.tasks || [];\nlet match = null;\nif (ref) {\n  match = tasks.find(t => t.name.toLowerCase().includes(ref) || ref.includes(t.name.toLowerCase()));\n  if (!match) {\n    const refWords = ref.split(/\\s+/).filter(w => w.length > 2);\n    match = tasks.find(t => refWords.some(w => t.name.toLowerCase().includes(w)));\n  }\n}\nreturn [{ json: {\n  from: dsr.from, phoneNumberId: dsr.phoneNumberId,\n  parsed_task_reference: pi.parsed_task_reference || '',\n  parsed_new_due_date: pi.parsed_new_due_date || '',\n  matched_task_id: match ? match.id : '',\n  matched_task_name: match ? match.name : '',\n  matched_task_url: match ? match.url : '',\n  match_found: match ? true : false\n} }];"
+      },
+      "id": "d4000000-0000-4000-8000-000000000002",
+      "name": "Match Task - Reschedule",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6336,
+        4832
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "x1",
+              "leftValue": "={{ $json.match_found }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "d4000000-0000-4000-8000-000000000003",
+      "name": "If - Task Matched (Reschedule)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        6624,
+        4832
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{ $('Code in JavaScript1').item.json.phoneNumberId }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_WHATSAPP_ACCESS_TOKEN"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { messaging_product: \"whatsapp\", to: $json.from, type: \"text\", text: { body: \"Sorry, I couldn't find a matching task for \\\"\" + $json.parsed_task_reference + \"\\\". Can you tell me the exact task name?\" } } }}",
+        "options": {}
+      },
+      "id": "d4000000-0000-4000-8000-000000000004",
+      "name": "WhatsApp - Reschedule Task Not Found",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        6928,
+        5136
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const src = $json;\nconst text = (src.parsed_new_due_date || '').toLowerCase().trim();\nconst now = new Date();\nlet due = null;\n\nfunction atTime(base, hour, minute) {\n  const d = new Date(base);\n  d.setHours(hour, minute || 0, 0, 0);\n  return d;\n}\n\nlet m = text.match(/(\\d+)\\s*(?:hours?|hrs?)/);\nif (m) due = new Date(now.getTime() + parseInt(m[1],10) * 3600 * 1000);\n\nif (!due && text.includes('tomorrow')) {\n  const tmr = new Date(now.getTime() + 24*3600*1000);\n  let tm = text.match(/(\\d{1,2})(?::(\\d{2}))?\\s*(am|pm)?/);\n  if (tm && tm[3]) {\n    let h = parseInt(tm[1],10);\n    const min = tm[2] ? parseInt(tm[2],10) : 0;\n    if (tm[3] === 'pm' && h < 12) h += 12;\n    if (tm[3] === 'am' && h === 12) h = 0;\n    due = atTime(tmr, h, min);\n  } else {\n    due = atTime(tmr, 17, 0);\n  }\n}\n\nif (!due) {\n  let tm = text.match(/(\\d{1,2})(?::(\\d{2}))?\\s*(am|pm)/);\n  if (tm) {\n    let h = parseInt(tm[1],10);\n    const min = tm[2] ? parseInt(tm[2],10) : 0;\n    if (tm[3] === 'pm' && h < 12) h += 12;\n    if (tm[3] === 'am' && h === 12) h = 0;\n    let base = now;\n    if (text.includes('tomorrow')) base = new Date(now.getTime()+24*3600*1000);\n    due = atTime(base, h, min);\n    if (due < now) due = new Date(due.getTime() + 24*3600*1000);\n  }\n}\n\nif (!due) {\n  m = text.match(/(\\d+)\\s*days?/);\n  if (m) due = new Date(now.getTime() + parseInt(m[1],10)*24*3600*1000);\n}\n\nif (!due) {\n  const parsed = Date.parse(text);\n  if (!isNaN(parsed)) due = new Date(parsed);\n}\n\nif (!due) due = new Date(now.getTime() + 24*3600*1000);\n\nreturn [{ json: Object.assign({}, src, { new_due_date_ms: due.getTime(), new_due_date_readable: due.toDateString() + ' ' + due.toLocaleTimeString() }) }];"
+      },
+      "id": "d4000000-0000-4000-8000-000000000005",
+      "name": "Compute New Due Date",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6880,
+        4816
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://api.clickup.com/api/v2/task/{{ $json.matched_task_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { due_date: $json.new_due_date_ms, due_date_time: true } }}",
+        "options": {}
+      },
+      "id": "d4000000-0000-4000-8000-000000000006",
+      "name": "Update Task - Due Date",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        7248,
+        4832
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "5Cwe4Bxkw2Nbfwmx",
+          "name": "ClickUp API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{ $('Code in JavaScript1').item.json.phoneNumberId }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_WHATSAPP_ACCESS_TOKEN"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { messaging_product: \"whatsapp\", to: $json.from, type: \"text\", text: { body: \"Done — \\\"\" + $json.matched_task_name + \"\\\" is now due \" + $json.new_due_date_readable + \".\" } } }}",
+        "options": {}
+      },
+      "id": "d4000000-0000-4000-8000-000000000007",
+      "name": "WhatsApp - Confirm Reschedule to Sender",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        7616,
+        4832
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{ $('Code in JavaScript1').item.json.phoneNumberId }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_WHATSAPP_ACCESS_TOKEN"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { messaging_product: \"whatsapp\", to: \"2547XXXXXXXX\", type: \"text\", text: { body: \"Heads up — the deadline for \\\"\" + $json.matched_task_name + \"\\\" has been changed to \" + $json.new_due_date_readable + \".\" } } }}",
+        "options": {}
+      },
+      "id": "d4000000-0000-4000-8000-000000000008",
+      "name": "WhatsApp - Notify Assignee of New Deadline",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        7936,
+        4848
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $getWorkflowStaticData('global');\nif (!data.sessions) data.sessions = {};\nconst from = $json.from;\nconst session = data.sessions[from];\nreturn [{ json: Object.assign({}, $json, { has_pending_session: !!(session && session.pending) }) }];"
+      },
+      "id": "e5000000-0000-4000-8000-000000000001",
+      "name": "Check Pending Session",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2480,
+        2624
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "x1",
+              "leftValue": "={{ $json.has_pending_session }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "e5000000-0000-4000-8000-000000000002",
+      "name": "If - Has Pending Session?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2688,
+        2352
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $getWorkflowStaticData('global');\nif (!data.sessions) data.sessions = {};\nconst from = $json.from;\nconst session = data.sessions[from];\nconst answerText = ($json.text || '').trim();\nconst t = answerText.toLowerCase();\nconst interactiveId = ($json.interactiveId || '').trim();\n\nif (session && session.pending) {\n  const cancelWords = ['never mind', 'nevermind', 'forget it', \"don't do it\", 'dont do it', 'scrap it', 'scrap this', 'cancel that', 'cancel this', 'not proceed'];\n  const isCancel = t === 'cancel' || t === 'stop' || cancelWords.some(w => t.includes(w));\n  if (isCancel) {\n    delete data.sessions[from];\n    return [{ json: { from: from, phoneNumberId: $json.phoneNumberId, outcome: 'SESSION_CANCELLED', next_stage: null, session_task: null, sender_role: session.set_by_role || '', sender_name: $json.sender_name || '', raw_text: answerText } }];\n  }\n  const isGreeting = !interactiveId && (t === 'hi' || t === 'hello' || t === 'hey' || t.startsWith('hi ') || t.startsWith('hello') || t.startsWith('hey ') || t.includes('good morning') || t.includes('good afternoon') || t.includes('good evening'));\n  if (isGreeting) {\n    return [{ json: { from: from, phoneNumberId: $json.phoneNumberId, outcome: 'GREETING_MIDSESSION', next_stage: session.stage, session_task: session.task, sender_role: session.set_by_role || '', sender_name: $json.sender_name || '', raw_text: answerText } }];\n  }\n}\n\nfunction levenshtein(a, b) {\n  const m = a.length, n = b.length;\n  const dp = [];\n  for (let i = 0; i <= m; i++) { dp.push(new Array(n + 1).fill(0)); dp[i][0] = i; }\n  for (let j = 0; j <= n; j++) dp[0][j] = j;\n  for (let i = 1; i <= m; i++) for (let j = 1; j <= n; j++) {\n    dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1] : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);\n  }\n  return dp[m][n];\n}\nfunction fuzzyHas(text, word) {\n  const maxDist = word.length <= 4 ? 1 : 2;\n  const words = text.split(/[^a-z0-9]+/).filter(Boolean);\n  return words.some(w => levenshtein(w, word) <= maxDist);\n}\n\nconst REMINDER_MAP = { '1':'1_week_before','2':'daily','3':'every_8_hours','4':'1_hour_before','5':'2_hours_before','6':'multiple_times','7':'custom' };\nconst REMINDER_WORDS = { 'week':'1_week_before','daily':'daily','every day':'daily','8hours':'every_8_hours','8hr':'every_8_hours','hour':'1_hour_before','2hours':'2_hours_before','multiple':'multiple_times' };\nconst PRIORITY_MAP = { '1':'urgent','2':'high','3':'normal','4':'low' };\nconst PRIORITY_WORDS = { 'urgent':'urgent','critical':'urgent','asap':'urgent','emergency':'urgent','immediately':'urgent','high':'high','important':'high','medium':'normal','mid':'normal','normal':'normal','moderate':'normal','low':'low','minor':'low','whenever':'low','norush':'low' };\nconst ALEX = { clickup_id: '112516349', whatsapp: '2547XXXXXXXX', name: 'Alex' };\nconst PERSIVAL = { clickup_id: '222123575', whatsapp: '2547XXXXXXXX', name: 'Persival' };\nconst SAM = { clickup_id: '112516348', whatsapp: '2547XXXXXXXX', name: 'Sam' };\n\nfunction parseCustomInterval(txt){\n  const tt=(txt||'').toLowerCase();\n  const m=tt.match(/(\\d+(?:\\.\\d+)?)\\s*(minute|min|hour|hr|day|week|wk|month)s?/);\n  if(!m) return null;\n  const n=parseFloat(m[1]);\n  const mult={minute:1,min:1,hour:60,hr:60,day:1440,week:10080,wk:10080,month:43200};\n  const mins=Math.round(n*(mult[m[2]]||1));\n  return mins>0?mins:null;\n}\nfunction parseReminder() {\n  if (interactiveId && REMINDER_MAP[interactiveId]) return REMINDER_MAP[interactiveId];\n  if (REMINDER_MAP[t]) return REMINDER_MAP[t];\n  if (t.includes('1 hour') || t.includes('one hour')) return '1_hour_before';\n  if (t.includes('2 hour') || t.includes('two hour')) return '2_hours_before';\n  if (t.includes('8 hour') || t.includes('eight hour')) return 'every_8_hours';\n  if (t.includes('24 hour') || t.includes('every day') || t.includes('daily') || t.includes('once a day')) return 'daily';\n  const hourNumMatch = t.match(/(\\d+)\\s*(?:hours?|hrs?)\\b/);\n  if (hourNumMatch) {\n    const n = parseInt(hourNumMatch[1], 10);\n    if (n >= 20) return 'daily';\n    if (n >= 5) return 'every_8_hours';\n    if (n >= 2) return '2_hours_before';\n    if (n === 1) return '1_hour_before';\n  }\n  for (const k in PRIORITY_WORDS) {} // no-op placeholder to keep structure consistent\n  for (const k in REMINDER_WORDS) if (fuzzyHas(t, k)) return REMINDER_WORDS[k];\n  return null;\n}\nfunction parsePriority() {\n  if (interactiveId && PRIORITY_MAP[interactiveId]) return PRIORITY_MAP[interactiveId];\n  if (PRIORITY_MAP[t]) return PRIORITY_MAP[t];\n  for (const k in PRIORITY_WORDS) if (fuzzyHas(t, k)) return PRIORITY_WORDS[k];\n  return null;\n}\nfunction hasExplicitTime(text) {\n  const s = (text || '').toLowerCase();\n  return /\\d{1,2}(:\\d{2})?\\s*(am|pm)/.test(s) || /\\b([01]?\\d|2[0-3]):[0-5]\\d\\b/.test(s) || /\\bnoon\\b/.test(s) || /\\bmidnight\\b/.test(s);\n}\nfunction parseTimeOnly(s) {\n  if (/\\bnoon\\b/.test(s)) return { h: 12, m: 0 };\n  if (/\\bmidnight\\b/.test(s)) return { h: 0, m: 0 };\n  let m = s.match(/(\\d{1,2})(?::(\\d{2}))?\\s*(am|pm)/);\n  if (m) {\n    let h = parseInt(m[1], 10);\n    const mi = m[2] ? parseInt(m[2], 10) : 0;\n    if (m[3] === 'pm' && h < 12) h += 12;\n    if (m[3] === 'am' && h === 12) h = 0;\n    return { h, m: mi };\n  }\n  m = s.match(/\\b([01]?\\d|2[0-3]):([0-5]\\d)\\b/);\n  if (m) return { h: parseInt(m[1],10), m: parseInt(m[2],10) };\n  return null;\n}\nfunction parseDueDate() {\n  const now = new Date();\n  let due = null;\n  function atTime(base,h,m){ const d=new Date(base); d.setHours(h,m||0,0,0); return d; }\n  const isTomorrow = t.includes('tomorrow') || fuzzyHas(t, 'tomorrow');\n  const isToday = t.includes('today') || fuzzyHas(t, 'today');\n  let m = t.match(/(\\d+)\\s*(?:hours?|hrs?)/);\n  if (m) due = new Date(now.getTime() + parseInt(m[1],10)*3600*1000);\n  if (!due && isTomorrow) {\n    const tmr = new Date(now.getTime()+24*3600*1000);\n    let tm = t.match(/(\\d{1,2})(?::(\\d{2}))?\\s*(am|pm)?/);\n    if (tm && tm[3]) { let h=parseInt(tm[1],10); const mi=tm[2]?parseInt(tm[2],10):0; if(tm[3]==='pm'&&h<12)h+=12; if(tm[3]==='am'&&h===12)h=0; due=atTime(tmr,h,mi); }\n    else due = atTime(tmr,17,0);\n  }\n  if (!due) {\n    let tm = t.match(/(\\d{1,2})(?::(\\d{2}))?\\s*(am|pm)/);\n    if (tm) { let h=parseInt(tm[1],10); const mi=tm[2]?parseInt(tm[2],10):0; if(tm[3]==='pm'&&h<12)h+=12; if(tm[3]==='am'&&h===12)h=0; let base=now; if(isTomorrow)base=new Date(now.getTime()+24*3600*1000); due=atTime(base,h,mi); if(due<now && !isTomorrow) due=new Date(due.getTime()+24*3600*1000); }\n  }\n  if (!due) { m = t.match(/(\\d+)\\s*days?/); if (m) due = new Date(now.getTime()+parseInt(m[1],10)*24*3600*1000); }\n  if (!due) { const p = Date.parse(t); if (!isNaN(p)) due = new Date(p); }\n  return due;\n}\n\nlet needsDateAI = false;\nif (session && session.pending) {\n  const stage = session.stage;\n  if (stage === 'assignee') {\n    let chosen = null;\n    if (interactiveId === 'persival' || t.includes('persival') || fuzzyHas(t,'persival') || t.includes('myself') || t === 'me') chosen = 'persival';\n    else if (interactiveId === 'alex' || t.includes('alex') || fuzzyHas(t,'alex')) chosen = 'alex';\n    else if (interactiveId === 'sam' || t.includes('sam') || fuzzyHas(t,'sam')) chosen = 'sam';\n    if (chosen === 'persival' && session.set_by_role === 'admin') {\n      session.task.assignee_clickup_id = PERSIVAL.clickup_id; session.task.assignee_whatsapp = PERSIVAL.whatsapp; session.task.assignee_name = PERSIVAL.name;\n    } else if (chosen === 'alex') {\n      session.task.assignee_clickup_id = ALEX.clickup_id; session.task.assignee_whatsapp = ALEX.whatsapp; session.task.assignee_name = ALEX.name;\n    } else if (chosen === 'sam') {\n      session.task.assignee_clickup_id = SAM.clickup_id; session.task.assignee_whatsapp = SAM.whatsapp; session.task.assignee_name = SAM.name;\n    } else if (chosen === 'persival' && session.set_by_role !== 'admin') {\n      // Alex cannot assign to Persival — leave unresolved so the question re-asks\n    } else if (answerText) {\n      session.task.assignee_name = answerText;\n    }\n  } else if (stage === 'task_desc') {\n    if (answerText) session.task.task = answerText;\n  } else if (stage === 'due_date') {\n    const d = parseDueDate();\n    if (d) { session.task.due_date_ms = d.getTime(); session.task.due_time_pending = !hasExplicitTime(answerText); }\n    else if (answerText) needsDateAI = true;\n  } else if (stage === 'priority') {\n    const p = parsePriority();\n    if (p) {\n      if (session.set_by_role === 'admin') session.task.priority = p;\n      else session.task.priority = session.task.priority || 'normal';\n    }\n  } else if (stage === 'reminder_admin') {\n    const r = parseReminder();\n    if (r === 'custom') { session.task.reminder_admin = 'custom_pending'; } else if (r) session.task.reminder_admin = r;\n  } else if (stage === 'reminder_assignee') {\n    const r = parseReminder();\n    if (r === 'custom') { session.task.reminder_assignee = 'custom_pending'; } else if (r) session.task.reminder_assignee = r;\n  } else if (stage === 'reminder_self') {\n    const r = parseReminder();\n    if (r === 'custom') { session.task.reminder_admin = 'custom_pending'; session.task.reminder_assignee = 'custom_pending'; } else if (r) { session.task.reminder_admin = r; session.task.reminder_assignee = r; }\n    } else if (stage === 'reminder_admin_custom') {\n      const mins = parseCustomInterval(answerText);\n      if (mins) { session.task.reminder_admin = 'custom'; session.task.reminder_admin_minutes = mins; }\n    } else if (stage === 'reminder_assignee_custom') {\n      const mins = parseCustomInterval(answerText);\n      if (mins) { session.task.reminder_assignee = 'custom'; session.task.reminder_assignee_minutes = mins; }\n    } else if (stage === 'reminder_self_custom') {\n      const mins = parseCustomInterval(answerText);\n      if (mins) { session.task.reminder_admin = 'custom'; session.task.reminder_admin_minutes = mins; session.task.reminder_assignee = 'custom'; session.task.reminder_assignee_minutes = mins; }\n    } else if (stage === 'confirm') {\n      const yesWords = ['yes','y','confirm','confirmed','ok','okay','go ahead','do it','create','create it','yep','yeah'];\n      const noWords = ['no','n','edit','change'];\n      const isYes = interactiveId === 'yes' || yesWords.includes(t);\n      const isNo = interactiveId === 'no' || noWords.includes(t);\n      if (isYes) { session.task.confirmed = true; }\n      else if (isNo) {\n        delete data.sessions[from];\n        return [{ json: { from: from, phoneNumberId: $json.phoneNumberId, outcome: 'SESSION_CANCELLED', next_stage: null, session_task: null, sender_role: session.set_by_role || '', sender_name: $json.sender_name || '', raw_text: answerText } }];\n      }\n  } else if (stage === 'due_time') {\n    const skipWords = ['skip','no','default','later','not sure',\"don't know\",'na','n/a'];\n    if (skipWords.includes(t)) {\n      session.task.due_time_pending = false;\n    } else {\n      const tm = parseTimeOnly(t);\n      if (tm) {\n        const cur = new Date(session.task.due_date_ms || Date.now());\n        cur.setHours(tm.h, tm.m, 0, 0);\n        session.task.due_date_ms = cur.getTime();\n        session.task.due_time_pending = false;\n      }\n    }\n  }\n}\n\nfunction nextMissing(task, setByRole, senderName) {\n  if (!task.assignee_clickup_id) return 'assignee';\n  if (!task.task) return 'task_desc';\n  if (!task.due_date_ms) return 'due_date';\n  if (task.due_date_ms && task.due_time_pending) return 'due_time';\n  if (!task.priority) return 'priority';\n  const sName = senderName || (setByRole === 'admin' ? 'Persival' : 'Alex');\n  const selfAssigned = task.assignee_name === sName;\n  if (selfAssigned) {\n    if (task.reminder_admin === 'custom_pending') return 'reminder_self_custom'; if (!task.reminder_admin) return 'reminder_self';\n    if (!task.confirmed) return 'confirm';\n    return null;\n  }\n  if (task.reminder_admin === 'custom_pending') return 'reminder_admin_custom'; if (!task.reminder_admin) return 'reminder_admin';\n  if (task.reminder_assignee === 'custom_pending') return 'reminder_assignee_custom'; if (!task.reminder_assignee) return 'reminder_assignee';\n  if (!task.confirmed) return 'confirm';\n  return null;\n}\n\nlet outcome = 'CLARIFY';\nlet nextStage = null;\nif (session && session.pending) {\n  if (needsDateAI) {\n    outcome = 'NEEDS_DATE_AI';\n    nextStage = 'due_date';\n  } else {\n    nextStage = nextMissing(session.task, session.set_by_role, $json.sender_name);\n    if (!nextStage) { outcome = 'READY'; session.pending = false; }\n    else { session.stage = nextStage; outcome = 'ASK_NEXT'; }\n  }\n  data.sessions[from] = session;\n}\n\nreturn [{ json: {\n  from: from,\n  phoneNumberId: $json.phoneNumberId,\n  outcome: outcome,\n  next_stage: nextStage,\n  session_task: session ? session.task : null,\n  sender_role: session ? session.set_by_role : '',\n  sender_name: $json.sender_name || '',\n  raw_text: answerText\n} }];"
+      },
+      "id": "e5000000-0000-4000-8000-000000000003",
+      "name": "Handle Session Answer",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3184,
+        2128
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "s1",
+                    "leftValue": "={{ $json.outcome }}",
+                    "rightValue": "READY",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "s2",
+                    "leftValue": "={{ $json.outcome }}",
+                    "rightValue": "ASK_NEXT",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "s3",
+                    "leftValue": "={{ $json.outcome }}",
+                    "rightValue": "NEEDS_DATE_AI",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "s4",
+                    "leftValue": "={{ $json.outcome }}",
+                    "rightValue": "SESSION_CANCELLED",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "s5",
+                    "leftValue": "={{ $json.outcome }}",
+                    "rightValue": "GREETING_MIDSESSION",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "e5000000-0000-4000-8000-000000000004",
+      "name": "Switch - Session Outcome",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        3472,
+        2544
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const t = $json.session_task;\nreturn [{ json: Object.assign({}, t, {\n  clickup_priority_num: ({urgent:1,high:2,normal:3,low:4})[t.priority] || 3\n}) }];"
+      },
+      "id": "e5000000-0000-4000-8000-000000000005",
+      "name": "Prepare Task Payload (Questionnaire)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5840,
+        688
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.clickup.com/api/v2/list/YOUR_CLICKUP_LIST_ID/task",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { name: $json.task, description: \"Created via WhatsApp assistant (questionnaire). Set by: \" + $json.set_by + \"\\n[BOTMETA]\" + JSON.stringify({reminder_admin: $json.reminder_admin, reminder_assignee: $json.reminder_assignee, set_by: $json.set_by, assignee_whatsapp: $json.assignee_whatsapp, reminder_admin_minutes: $json.reminder_admin_minutes, reminder_assignee_minutes: $json.reminder_assignee_minutes}) + \"[/BOTMETA]\", assignees: [Number($json.assignee_clickup_id)], due_date: $json.due_date_ms, due_date_time: true, priority: $json.clickup_priority_num } }}",
+        "options": {}
+      },
+      "id": "e5000000-0000-4000-8000-000000000006",
+      "name": "Create Task in ClickUp (Questionnaire)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        6048,
+        336
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "5Cwe4Bxkw2Nbfwmx",
+          "name": "ClickUp API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{ $('Handle Session Answer').item.json.phoneNumberId }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_WHATSAPP_ACCESS_TOKEN"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { messaging_product: \"whatsapp\", to: $('Handle Session Answer').item.json.from, type: \"text\", text: { body: \"All set! Task \\\"\" + $('Prepare Task Payload (Questionnaire)').item.json.task + \"\\\" created for \" + $('Prepare Task Payload (Questionnaire)').item.json.assignee_name + \" (assigned by \" + $('Prepare Task Payload (Questionnaire)').item.json.set_by + \"), priority \" + $('Prepare Task Payload (Questionnaire)').item.json.priority + \".\" } } }}",
+        "options": {}
+      },
+      "id": "e5000000-0000-4000-8000-000000000007",
+      "name": "WhatsApp - Confirm Task Created (Questionnaire)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        6816,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{ $('Handle Session Answer').item.json.phoneNumberId }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_WHATSAPP_ACCESS_TOKEN"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { messaging_product: \"whatsapp\", to: $('Prepare Task Payload (Questionnaire)').item.json.assignee_whatsapp, type: \"template\", template: { name: \"task_assigned_notification\", language: { code: \"en\" }, components: [ { type: \"body\", parameters: [ { type: \"text\", text: $('Prepare Task Payload (Questionnaire)').item.json.assignee_name }, { type: \"text\", text: $('Prepare Task Payload (Questionnaire)').item.json.task }, { type: \"text\", text: new Date($('Prepare Task Payload (Questionnaire)').item.json.due_date_ms).toDateString() }, { type: \"text\", text: \"Persival\" } ] } ] } } }}",
+        "options": {}
+      },
+      "id": "e5000000-0000-4000-8000-000000000008",
+      "name": "WhatsApp - Notify Assignee (Questionnaire)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        7296,
+        32
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{ $('Code in JavaScript1').item.json.phoneNumberId }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_WHATSAPP_ACCESS_TOKEN"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { messaging_product: \"whatsapp\", to: $json.from, type: \"text\", text: { body: \"Sorry, I didn't quite catch that. Could you rephrase?\" } } }}",
+        "options": {}
+      },
+      "id": "e5000000-0000-4000-8000-000000000009",
+      "name": "WhatsApp - Clarify Ambiguous",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        4848,
+        3408
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const stage = $json.next_stage;\nconst from = $json.from;\nconst phoneNumberId = $json.phoneNumberId;\nconst role = $json.sender_role;\nconst senderName = $json.sender_name || '';\nlet payload;\nconst listMsg = (bodyText, rows) => ({ messaging_product:'whatsapp', to: from, type:'interactive', interactive: { type:'list', body:{text:bodyText}, action:{ button:'Choose', sections:[{title:'Options', rows}] } } });\nif (stage === 'assignee') {\n  let rows;\n  if (role === 'admin') {\n    rows = [{id:'persival',title:'Persival (myself)'},{id:'alex',title:'Alex'},{id:'sam',title:'Sam'}];\n  } else if (senderName === 'Sam') {\n    rows = [{id:'sam',title:'Sam (myself)'},{id:'alex',title:'Alex'}];\n  } else {\n    rows = [{id:'alex',title:'Alex (myself)'},{id:'sam',title:'Sam'}];\n  }\n  payload = listMsg('Who should this task be assigned to?', rows);\n} else if (stage === 'task_desc') {\n  payload = { messaging_product:'whatsapp', to: from, type:'text', text:{ body: \"What's the task description?\" } };\n} else if (stage === 'due_date') {\n  payload = { messaging_product:'whatsapp', to: from, type:'text', text:{ body: 'When is this due? (e.g. \"tomorrow 6pm\", \"in 3 hours\", \"24 hours\")' } };\n} else if (stage === 'due_time') {\n  payload = { messaging_product:'whatsapp', to: from, type:'text', text:{ body: 'What time is it due? (e.g. \"6pm\", \"14:30\", \"noon\", \"midnight\"). Reply \"skip\" to leave it as end of day.' } };\n} else if (stage === 'priority') {\n  payload = listMsg('What priority should this task have?', [\n    {id:'1',title:'Urgent'},{id:'2',title:'High'},{id:'3',title:'Normal'},{id:'4',title:'Low'}\n  ]);\n} else if (stage === 'reminder_admin') {\n  payload = listMsg('How often would YOU like to be reminded about this task?', [\n    {id:'1',title:'1 week before due'},{id:'2',title:'Daily'},{id:'3',title:'Every 8 hours'},\n    {id:'4',title:'1 hour before due'},{id:'5',title:'2 hours before due'},{id:'6',title:'Multiple times'},{id:'7',title:'Custom'}\n  ]);\n} else if (stage === 'reminder_assignee') {\n  payload = listMsg('How often should the assignee be reminded about this task?', [\n    {id:'1',title:'1 week before due'},{id:'2',title:'Daily'},{id:'3',title:'Every 8 hours'},\n    {id:'4',title:'1 hour before due'},{id:'5',title:'2 hours before due'},{id:'6',title:'Multiple times'},{id:'7',title:'Custom'}\n  ]);\n} else if (stage === 'reminder_self') {\n  payload = listMsg('How often would you like to be reminded about this task?', [\n    {id:'1',title:'1 week before due'},{id:'2',title:'Daily'},{id:'3',title:'Every 8 hours'},\n    {id:'4',title:'1 hour before due'},{id:'5',title:'2 hours before due'},{id:'6',title:'Multiple times'},{id:'7',title:'Custom'}\n  ]);\n} else if (stage === 'reminder_admin_custom' || stage === 'reminder_assignee_custom' || stage === 'reminder_self_custom') {\n  payload = { messaging_product:'whatsapp', to: from, type:'text', text:{ body: \"How often would you like to be reminded? Type any interval, e.g. '5 minutes', '3 hours', '2 days', '1 week'.\" } };\n} else if (stage === 'confirm') {\n  const task = $json.session_task || {};\n  const dueStr = task.due_date_ms ? new Date(Number(task.due_date_ms)).toDateString() : 'no due date';\n  const remA = task.reminder_admin === 'custom' ? (task.reminder_admin_minutes + ' min') : (task.reminder_admin || 'none');\n  const remB = task.reminder_assignee === 'custom' ? (task.reminder_assignee_minutes + ' min') : (task.reminder_assignee || 'none');\n  const summary = 'Please confirm:\\nTask: ' + (task.task || '') + '\\nAssigned to: ' + (task.assignee_name || '') + '\\nDue: ' + dueStr + '\\nPriority: ' + (task.priority || 'normal') + '\\nAdmin reminder: ' + remA + '\\nAssignee reminder: ' + remB;\n  payload = listMsg(summary, [\n    {id:'yes',title:'Yes, create it'},\n    {id:'no',title:'No, cancel'}\n  ]);\n} else {\n  payload = { messaging_product:'whatsapp', to: from, type:'text', text:{ body: 'Got it.' } };\n}\nreturn [{ json: { whatsapp_payload: payload, phoneNumberId: phoneNumberId } }];"
+      },
+      "id": "e5000000-0000-4000-8000-00000000000a",
+      "name": "Build Next Question Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4864,
+        1536
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{ $json.phoneNumberId }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_WHATSAPP_ACCESS_TOKEN"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.whatsapp_payload }}",
+        "options": {}
+      },
+      "id": "e5000000-0000-4000-8000-00000000000b",
+      "name": "Send Next Question",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        5312,
+        1488
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const lookup = $json;\nconst pi = $('Parse Intent').item.json;\nconst dsr = $('Determine Sender Role').item.json;\nconst task = {\n  assignee_name: lookup.assignee_found ? lookup.assignee_name : '',\n  assignee_clickup_id: lookup.assignee_clickupUserId || '',\n  assignee_whatsapp: lookup.assignee_whatsapp || '',\n  task: lookup.task || pi.parsed_task || '',\n  due_date_ms: lookup.due_date_ms || null,\n  due_time_pending: !!lookup.due_date_ms && !lookup.due_time_explicit,\n  priority: pi.parsed_priority || '',\n  reminder_admin: '',\n  reminder_assignee: '',\n  set_by: dsr.sender_name || (dsr.sender_role === 'admin' ? 'Persival' : 'Alex')\n};\nconst complete = !!(task.assignee_clickup_id && task.task && task.due_date_ms && task.priority && task.reminder_admin && task.reminder_assignee);\nreturn [{ json: Object.assign({}, $json, {\n  task_complete: complete, built_task: task,\n  from: dsr.from, phoneNumberId: dsr.phoneNumberId, sender_role: dsr.sender_role\n}) }];"
+      },
+      "id": "e5000000-0000-4000-8000-00000000000c",
+      "name": "Check Task Completeness",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5056,
+        4816
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "x1",
+              "leftValue": "={{ $json.task_complete }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "e5000000-0000-4000-8000-00000000000d",
+      "name": "If - Task Complete?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        6592,
+        3808
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $getWorkflowStaticData('global');\nif (!data.sessions) data.sessions = {};\nconst from = $json.from;\nconst t = $json.built_task;\nfunction nextMissing(task, setByRole, senderName) {\n  if (!task.assignee_clickup_id) return 'assignee';\n  if (!task.task) return 'task_desc';\n  if (!task.due_date_ms) return 'due_date';\n  if (task.due_date_ms && task.due_time_pending) return 'due_time';\n  if (!task.priority) return 'priority';\n  const sName = senderName || (setByRole === 'admin' ? 'Persival' : 'Alex');\n  const selfAssigned = task.assignee_name === sName;\n  if (selfAssigned) {\n    if (task.reminder_admin === 'custom_pending') return 'reminder_self_custom';\n    if (!task.reminder_admin) return 'reminder_self';\n    if (!task.confirmed) return 'confirm';\n    return null;\n  }\n  if (task.reminder_admin === 'custom_pending') return 'reminder_admin_custom';\n  if (!task.reminder_admin) return 'reminder_admin';\n  if (task.reminder_assignee === 'custom_pending') return 'reminder_assignee_custom';\n  if (!task.reminder_assignee) return 'reminder_assignee';\n  if (!task.confirmed) return 'confirm';\n  return null;\n}\nconst stage = nextMissing(t, $json.sender_role, $json.sender_name);\ndata.sessions[from] = { pending: true, stage, task: t, set_by_role: $json.sender_role, set_by_name: $json.sender_name };\nreturn [{ json: { from, phoneNumberId: $json.phoneNumberId, next_stage: stage, sender_role: $json.sender_role, sender_name: $json.sender_name } }];"
+      },
+      "id": "e5000000-0000-4000-8000-00000000000e",
+      "name": "Start Session From CREATE_TASK",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6976,
+        3264
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const id = ($json.interactiveId || '');\nconst m = id.match(/^done_(yes|no)_(.+)$/);\nreturn [{ json: Object.assign({}, $json, {\n  is_completion_reply: !!m,\n  completion_answer: m ? m[1] : '',\n  completion_task_id: m ? m[2] : ''\n}) }];"
+      },
+      "id": "f6000000-0000-4000-8000-000000000001",
+      "name": "Detect Completion Reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1840,
+        848
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "x1",
+              "leftValue": "={{ $json.is_completion_reply }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "f6000000-0000-4000-8000-000000000002",
+      "name": "If - Completion Reply?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2128,
+        1168
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.clickup.com/api/v2/task/{{ $json.completion_task_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "f6000000-0000-4000-8000-000000000003",
+      "name": "Get Task Details (Completion Reply)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2384,
+        848
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "5Cwe4Bxkw2Nbfwmx",
+          "name": "ClickUp API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const task = $json;\nconst prior = $('Detect Completion Reply').item.json;\nreturn [{ json: {\n  from: prior.from, phoneNumberId: prior.phoneNumberId,\n  completion_answer: prior.completion_answer,\n  task_id: prior.completion_task_id,\n  task_name: task.name || '',\n  priority_name: (task.priority && task.priority.priority) ? task.priority.priority : 'normal'\n} }];"
+      },
+      "id": "f6000000-0000-4000-8000-000000000004",
+      "name": "Handle Completion Reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2736,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "x1",
+              "leftValue": "={{ $json.completion_answer }}",
+              "rightValue": "yes",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "f6000000-0000-4000-8000-000000000005",
+      "name": "If - Completed Yes?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2960,
+        944
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://api.clickup.com/api/v2/task/{{ $json.task_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { status: \"complete\" } }}",
+        "options": {}
+      },
+      "id": "f6000000-0000-4000-8000-000000000006",
+      "name": "Update Task - Complete (Overdue Confirm)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        3232,
+        768
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "5Cwe4Bxkw2Nbfwmx",
+          "name": "ClickUp API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{ $('Handle Completion Reply').item.json.phoneNumberId }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_WHATSAPP_ACCESS_TOKEN"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { messaging_product: \"whatsapp\", to: $('Handle Completion Reply').item.json.from, type: \"text\", text: { body: \"Great, thanks for confirming! Marked \\\"\" + $('Handle Completion Reply').item.json.task_name + \"\\\" as completed.\" } } }}",
+        "options": {}
+      },
+      "id": "f6000000-0000-4000-8000-000000000007",
+      "name": "WhatsApp - Confirm Completed (Overdue)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        3536,
+        688
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{ $('Handle Completion Reply').item.json.phoneNumberId }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_WHATSAPP_ACCESS_TOKEN"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { messaging_product: \"whatsapp\", to: \"2547XXXXXXXX\", type: \"text\", text: { body: \"Alex has completed the task: \\\"\" + $('Handle Completion Reply').item.json.task_name + \"\\\" (confirmed via overdue check-in).\" } } }}",
+        "options": {}
+      },
+      "id": "f6000000-0000-4000-8000-000000000008",
+      "name": "WhatsApp - Notify Persival (Overdue Completed)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        3824,
+        704
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{ $json.phoneNumberId }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_WHATSAPP_ACCESS_TOKEN"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { messaging_product: \"whatsapp\", to: $json.from, type: \"text\", text: { body: \"Understood. Just a heads up — \\\"\" + $json.task_name + \"\\\" is \" + $json.priority_name + \" priority and is overdue, so it needs to be done ASAP.\" } } }}",
+        "options": {}
+      },
+      "id": "f6000000-0000-4000-8000-000000000009",
+      "name": "WhatsApp - Tell Priority ASAP",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        3216,
+        1024
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:11434/api/generate",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "qwen2.5:7b-instruct"
+            },
+            {
+              "name": "prompt",
+              "value": "=You are a date/time interpreter. The current date and time is {{ new Date().toString() }}.\nA person replied with the following text when asked for a task's due date/deadline. It may contain typos or informal phrasing.\n\nText: {{ $('Handle Session Answer').item.json.raw_text }}\n\nWork out what date/time they most likely meant, correcting for typos. Respond with ONLY a JSON object with one key:\nhours_from_now: a number (may be decimal) of hours from right now until the deadline they meant, or null if you truly cannot determine any date/time from the text.\nOutput:"
+            },
+            {
+              "name": "stream",
+              "value": "={{ false }}"
+            },
+            {
+              "name": "format",
+              "value": "json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "g9000000-0000-4000-8000-000000000001",
+      "name": "Ollama - Parse Date Text",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        5296,
+        2960
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $getWorkflowStaticData('global');\nif (!data.sessions) data.sessions = {};\nconst hs = $('Handle Session Answer').item.json;\nfunction hasExplicitTime(text) {\n  const s = (text || '').toLowerCase();\n  return /\\d{1,2}(:\\d{2})?\\s*(am|pm)/.test(s) || /\\b([01]?\\d|2[0-3]):[0-5]\\d\\b/.test(s) || /\\bnoon\\b/.test(s) || /\\bmidnight\\b/.test(s);\n}\nconst from = hs.from;\nconst session = data.sessions[from];\nlet raw = $json.response;\nlet parsed = {};\ntry { parsed = JSON.parse(raw); } catch (e) { parsed = { hours_from_now: null }; }\n\nfunction nextMissing(task, setByRole, senderName) {\n  if (!task.assignee_clickup_id) return 'assignee';\n  if (!task.task) return 'task_desc';\n  if (!task.due_date_ms) return 'due_date';\n  if (task.due_date_ms && task.due_time_pending) return 'due_time';\n  if (!task.priority) return 'priority';\n  const sName = senderName || (setByRole === 'admin' ? 'Persival' : 'Alex');\n  const selfAssigned = task.assignee_name === sName;\n  if (selfAssigned) {\n    if (task.reminder_admin === 'custom_pending') return 'reminder_self_custom';\n    if (!task.reminder_admin) return 'reminder_self';\n    if (!task.confirmed) return 'confirm';\n    return null;\n  }\n  if (task.reminder_admin === 'custom_pending') return 'reminder_admin_custom';\n  if (!task.reminder_admin) return 'reminder_admin';\n  if (task.reminder_assignee === 'custom_pending') return 'reminder_assignee_custom';\n  if (!task.reminder_assignee) return 'reminder_assignee';\n  if (!task.confirmed) return 'confirm';\n  return null;\n}\n\nlet outcome = 'ASK_NEXT';\nlet nextStage = 'due_date';\nif (session && session.pending) {\n  const hrs = Number(parsed.hours_from_now);\n  if (parsed.hours_from_now !== null && parsed.hours_from_now !== undefined && !isNaN(hrs)) {\n    session.task.due_date_ms = Date.now() + hrs * 3600 * 1000;\n    session.task.due_time_pending = !hasExplicitTime(hs.raw_text);\n  }\n  nextStage = nextMissing(session.task, session.set_by_role, hs.sender_name);\n  if (!nextStage) { outcome = 'READY'; session.pending = false; }\n  else { session.stage = nextStage; outcome = 'ASK_NEXT'; }\n  data.sessions[from] = session;\n}\n\nreturn [{ json: {\n  from: from, phoneNumberId: hs.phoneNumberId, outcome: outcome, next_stage: nextStage,\n  session_task: session ? session.task : null, sender_role: session ? session.set_by_role : ''\n} }];"
+      },
+      "id": "g9000000-0000-4000-8000-000000000002",
+      "name": "Apply Ollama Date Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5744,
+        2992
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "d1",
+              "leftValue": "={{ $json.outcome }}",
+              "rightValue": "READY",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "g9000000-0000-4000-8000-000000000003",
+      "name": "If - Date AI Ready?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        5616,
+        1696
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.clickup.com/api/v2/list/YOUR_CLICKUP_LIST_ID/task",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "include_closed",
+              "value": "false"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c06943c9-4837-4ce7-8a0a-ba2ba353959c",
+      "name": "Find Open Tasks (Acknowledge)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        4768,
+        5504
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "5Cwe4Bxkw2Nbfwmx",
+          "name": "ClickUp API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const pi = $('Parse Intent').item.json;\nconst dsr = $('Determine Sender Role').item.json;\nconst ref = (pi.parsed_task_reference || '').toLowerCase();\nconst tasks = $json.tasks || [];\n\nconst ALEX_ID = '112516349';\nconst PERSIVAL_ID = '222123575';\nconst PERSIVAL_WHATSAPP = '2547XXXXXXXX';\n\nconst SAM_ID = '112516348';\nconst NAME_TO_ID = { Persival: PERSIVAL_ID, Alex: ALEX_ID, Sam: SAM_ID };\nconst senderName = dsr.sender_name || (dsr.sender_role === 'admin' ? 'Persival' : 'Alex');\nconst senderClickupId = NAME_TO_ID[senderName] || (dsr.sender_role === 'admin' ? PERSIVAL_ID : ALEX_ID);\n\nconst myTasks = tasks.filter(t => (t.assignees || []).some(a => String(a.id) === senderClickupId));\n\nlet match = null;\nif (ref) {\n  match = myTasks.find(t => t.name.toLowerCase().includes(ref) || ref.includes(t.name.toLowerCase()));\n  if (!match) {\n    const refWords = ref.split(/\\s+/).filter(w => w.length > 2);\n    match = myTasks.find(t => refWords.some(w => t.name.toLowerCase().includes(w)));\n  }\n}\nif (!match && myTasks.length === 1) {\n  match = myTasks[0];\n}\n\nlet dueFormatted = '';\nif (match && match.due_date) {\n  const d = new Date(parseInt(match.due_date));\n  if (!isNaN(d.getTime())) dueFormatted = d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });\n}\n\nreturn [{ json: {\n  from: dsr.from,\n  phoneNumberId: dsr.phoneNumberId,\n  match_found: !!match,\n  matched_task_name: match ? match.name : '',\n  matched_due_date_formatted: dueFormatted,\n  sender_role: dsr.sender_role,\n  sender_name: senderName,\n  notify_to_whatsapp: dsr.sender_role === 'assignee' ? PERSIVAL_WHATSAPP : ''\n} }];"
+      },
+      "id": "2e3f5ac2-87ec-41f3-a2b9-4899ad1b8867",
+      "name": "Match Task - Acknowledge",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5216,
+        5456
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "x1",
+              "leftValue": "={{ $json.match_found }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "36e5dada-d92d-4fd9-9286-5615728649c9",
+      "name": "If - Ack Task Found?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        5408,
+        5280
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{ $('Code in JavaScript1').item.json.phoneNumberId }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_WHATSAPP_ACCESS_TOKEN"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { messaging_product: \"whatsapp\", to: $('Match Task - Acknowledge').item.json.notify_to_whatsapp, type: \"text\", text: { body: $('Match Task - Acknowledge').item.json.sender_name + \" has received the task \\\"\" + $('Match Task - Acknowledge').item.json.matched_task_name + \"\\\" and will deliver it before the due date\" + ($('Match Task - Acknowledge').item.json.matched_due_date_formatted ? \" (\" + $('Match Task - Acknowledge').item.json.matched_due_date_formatted + \")\" : \"\") + \".\" } } }}",
+        "options": {}
+      },
+      "id": "42e3cefb-ce40-4994-b743-4b07d6639831",
+      "name": "WhatsApp - Notify Persival (Acknowledged)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        6080,
+        5408
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{ $('Code in JavaScript1').item.json.phoneNumberId }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_WHATSAPP_ACCESS_TOKEN"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { messaging_product: \"whatsapp\", to: $('Match Task - Acknowledge').item.json.from, type: \"text\", text: { body: \"Got it \\u2014 I've let Persival know you're on it!\" } } }}",
+        "options": {}
+      },
+      "id": "dfcf20be-3eac-41e5-96ec-10eb2bc3057e",
+      "name": "WhatsApp - Confirm Ack to Sender",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        5872,
+        5152
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "x1",
+              "leftValue": "={{ $('Match Task - Acknowledge').item.json.notify_to_whatsapp }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "f63420cb-74cb-4fe8-ba19-ba84f6883237",
+      "name": "If - Should Notify Persival?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        5840,
+        5408
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "16fd3c9d-dc2c-4e36-a8ea-a59b9788aaa6",
+              "leftValue": "={{ $json.type }}",
+              "rightValue": "audio",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "edb3df72-5bff-474d-a5d8-52612c54d14d",
+      "name": "If - Is Audio?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -592,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://graph.facebook.com/v21.0/' + $json.audioId }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_WHATSAPP_ACCESS_TOKEN"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c031a8dc-c597-41f1-845f-56250dccc777",
+      "name": "Get Media URL",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -288,
+        -224
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_WHATSAPP_ACCESS_TOKEN"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "c4d0c36e-65f2-4080-bd99-1eaa02a8a5b2",
+      "name": "Download Audio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -32,
+        -224
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://127.0.0.1:5005/transcribe",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "language",
+              "value": "en"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "9099e66b-15d8-4257-93f3-4c0aa80422e6",
+      "name": "Transcribe Audio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        192,
+        -224
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const orig = $('Code in JavaScript1').item.json;\nreturn [{ json: Object.assign({}, orig, {\n  text: $json.text || '',\n  interactiveId: '',\n  isAudioTranscript: true\n}) }];"
+      },
+      "id": "a8cf4637-2185-4161-a140-223bf662ec54",
+      "name": "Merge Transcript into Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        528,
+        -224
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $getWorkflowStaticData('global');\nif (!data.sessions) data.sessions = {};\nconst from = $json.from;\nconst session = data.sessions[from];\nreturn [{ json: {\n  from: from,\n  phoneNumberId: $json.phoneNumberId,\n  sender_role: $json.sender_role,\n  sender_name: $json.sender_name,\n  has_pending_session: !!(session && session.pending)\n} }];"
+      },
+      "id": "e8b2f527-f727-452c-a15c-1c195c69aea3",
+      "name": "Detect Cancel Session",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4768,
+        6032
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "x1",
+              "leftValue": "={{ $json.has_pending_session }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "4c7665e4-aa7a-40f7-b61c-213ab1f8d04d",
+      "name": "If - Pending Session To Cancel?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        5232,
+        6032
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $getWorkflowStaticData('global');\nconst from = $json.from;\nif (data.sessions) delete data.sessions[from];\nreturn [{ json: { from: from, phoneNumberId: $json.phoneNumberId } }];"
+      },
+      "id": "0b576986-4044-44d3-b9b6-b038654b82c0",
+      "name": "Clear Cancelled Session",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6080,
+        5760
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.clickup.com/api/v2/list/YOUR_CLICKUP_LIST_ID/task",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "include_closed",
+              "value": "false"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4fc19623-d5e7-4481-8598-5dea1a557dfe",
+      "name": "Find Open Tasks (Cancel)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        5680,
+        6176
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "5Cwe4Bxkw2Nbfwmx",
+          "name": "ClickUp API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const pi = $('Parse Intent').item.json;\nconst dsr = $('Detect Cancel Session').item.json;\nconst ref = (pi.parsed_task_reference || '').toLowerCase();\nconst tasks = $json.tasks || [];\n\nconst ALEX_ID = '112516349';\nconst PERSIVAL_ID = '222123575';\nconst SAM_ID = '112516348';\nconst ALEX_WA = '2547XXXXXXXX';\nconst PERSIVAL_WA = '2547XXXXXXXX';\nconst SAM_WA = '2547XXXXXXXX';\nconst NAME_TO_ID = { Persival: PERSIVAL_ID, Alex: ALEX_ID, Sam: SAM_ID };\nconst NAME_TO_WA = { Persival: PERSIVAL_WA, Alex: ALEX_WA, Sam: SAM_WA };\n\nconst senderName = dsr.sender_name || (dsr.sender_role === 'admin' ? 'Persival' : 'Alex');\nconst senderClickupId = NAME_TO_ID[senderName] || ALEX_ID;\n\nconst myTasks = tasks.filter(t => (t.assignees || []).some(a => String(a.id) === senderClickupId));\n\nlet match = null;\nif (ref) {\n  match = myTasks.find(t => t.name.toLowerCase().includes(ref) || ref.includes(t.name.toLowerCase()));\n  if (!match) {\n    const refWords = ref.split(/\\s+/).filter(w => w.length > 2);\n    match = myTasks.find(t => refWords.some(w => t.name.toLowerCase().includes(w)));\n  }\n}\nif (!match && myTasks.length === 1) { match = myTasks[0]; }\n\nlet notifyWhatsapp = '';\nif (match) {\n  if (senderName === 'Persival') {\n    const otherAssignee = (match.assignees || []).find(a => String(a.id) !== PERSIVAL_ID);\n    if (otherAssignee) {\n      const nm = Object.keys(NAME_TO_ID).find(k => NAME_TO_ID[k] === String(otherAssignee.id));\n      notifyWhatsapp = NAME_TO_WA[nm] || '';\n    }\n  } else {\n    notifyWhatsapp = PERSIVAL_WA;\n  }\n}\n\nreturn [{ json: {\n  from: dsr.from,\n  phoneNumberId: dsr.phoneNumberId,\n  match_found: !!match,\n  matched_task_id: match ? match.id : '',\n  matched_task_name: match ? match.name : '',\n  sender_name: senderName,\n  notify_to_whatsapp: notifyWhatsapp,\n  my_open_tasks: myTasks.map(t => t.name)\n} }];"
+      },
+      "id": "fad73f21-34c5-460e-a391-514d3b472ef2",
+      "name": "Match Task - Cancel",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6032,
+        6176
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "x1",
+              "leftValue": "={{ $json.match_found }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "ca86bcff-89a5-44af-ba20-f6ab1c6f4ff3",
+      "name": "If - Cancel Task Found?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        6384,
+        6208
+      ]
+    },
+    {
+      "parameters": {
+        "method": "DELETE",
+        "url": "=https://api.clickup.com/api/v2/task/{{ $json.matched_task_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "bdf73864-5f11-40be-9fe4-b67559a9a006",
+      "name": "ClickUp - Delete Cancelled Task",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        6864,
+        6032
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "5Cwe4Bxkw2Nbfwmx",
+          "name": "ClickUp API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{ $('Code in JavaScript1').item.json.phoneNumberId }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_WHATSAPP_ACCESS_TOKEN"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { messaging_product: \"whatsapp\", to: $('Clear Cancelled Session').item.json.from, type: \"text\", text: { body: \"Okay, noted \\u2014 let's not proceed with this task.\" } } }}",
+        "options": {}
+      },
+      "id": "435a3ad5-a0bc-476c-83f4-1b3648553d4f",
+      "name": "WhatsApp - Session Cancelled Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        6368,
+        5744
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{ $('Code in JavaScript1').item.json.phoneNumberId }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_WHATSAPP_ACCESS_TOKEN"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { messaging_product: \"whatsapp\", to: $('Match Task - Cancel').item.json.from, type: \"text\", text: { body: \"Cancelled \\\"\" + $('Match Task - Cancel').item.json.matched_task_name + \"\\\".\" + ($('Match Task - Cancel').item.json.notify_to_whatsapp ? \" I've let the other person know.\" : \"\") } } }}",
+        "options": {}
+      },
+      "id": "b6d4723d-5eb5-47e0-b25b-4298f841eb9f",
+      "name": "WhatsApp - Confirm Cancel to Sender",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        7312,
+        6224
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{ $('Code in JavaScript1').item.json.phoneNumberId }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_WHATSAPP_ACCESS_TOKEN"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { messaging_product: \"whatsapp\", to: $('Match Task - Cancel').item.json.notify_to_whatsapp, type: \"text\", text: { body: $('Match Task - Cancel').item.json.sender_name + \" cancelled the task \\\"\" + $('Match Task - Cancel').item.json.matched_task_name + \"\\\" \\u2014 you don't need to proceed with it.\" } } }}",
+        "options": {}
+      },
+      "id": "615162f6-149d-4b36-8579-afa640e65a63",
+      "name": "WhatsApp - Notify Other Party (Cancelled)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        8096,
+        5632
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{ $('Code in JavaScript1').item.json.phoneNumberId }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_WHATSAPP_ACCESS_TOKEN"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { messaging_product: \"whatsapp\", to: $('Match Task - Cancel').item.json.from, type: \"text\", text: { body: $('Match Task - Cancel').item.json.my_open_tasks.length ? \"I couldn't tell which task you meant to cancel. Your open tasks are:\\n- \" + $('Match Task - Cancel').item.json.my_open_tasks.join(\"\\n- \") + \"\\n\\nReply with the task name, or 'never mind' to drop it.\" : \"I don't see anything open to cancel right now.\" } } }}",
+        "options": {}
+      },
+      "id": "7ce324a5-6b8f-4bf1-ac4d-feaba28d2352",
+      "name": "WhatsApp - Nothing To Cancel Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        6816,
+        6576
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "x1",
+              "leftValue": "={{ $('Match Task - Cancel').item.json.notify_to_whatsapp }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "1cc5fd33-54d4-436c-a863-5ac422871ffc",
+      "name": "If - Should Notify Cancel?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        7824,
+        5824
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $getWorkflowStaticData('global');\nconst from = $('Determine Sender Role').item.json.from;\nconst phoneNumberId = $('Determine Sender Role').item.json.phoneNumberId;\nconst session = data.sessions && data.sessions[from];\nlet body;\nif (session && session.pending) {\n  const labels = {\n    assignee: 'who this task should go to',\n    task_desc: 'what the task actually is',\n    due_date: 'the due date',\n    priority: 'the priority',\n    reminder_admin: 'your reminder preference',\n    reminder_assignee: \"the assignee's reminder preference\",\n    reminder_self: 'your reminder preference'\n  };\n  const stageLabel = labels[session.stage] || 'a few details';\n  body = \"Hello! You didn't finish setting up that task \\u2014 I still need \" + stageLabel + \". Want to continue, or should I drop it? (reply 'never mind' to cancel)\";\n} else {\n  body = \"Hello! What would you like to do today?\";\n}\nreturn [{ json: { from: from, phoneNumberId: phoneNumberId, body: body } }];"
+      },
+      "id": "6af8deda-f9f7-49dd-884d-54b64cada8ea",
+      "name": "Build Greeting Reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4768,
+        5760
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{ $('Code in JavaScript1').item.json.phoneNumberId }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_WHATSAPP_ACCESS_TOKEN"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { messaging_product: \"whatsapp\", to: $('Build Greeting Reply').item.json.from, type: \"text\", text: { body: $('Build Greeting Reply').item.json.body } } }}",
+        "options": {}
+      },
+      "id": "e5388b6a-b79d-4ede-8a2a-370f694a50c0",
+      "name": "WhatsApp - Greeting Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        5072,
+        5760
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const labels = {\n  assignee: 'who this task should go to',\n  task_desc: 'what the task actually is',\n  due_date: 'the due date',\n  priority: 'the priority',\n  reminder_admin: 'your reminder preference',\n  reminder_assignee: \"the assignee's reminder preference\",\n  reminder_self: 'your reminder preference'\n};\nconst stageLabel = labels[$json.next_stage] || 'a few details';\nconst body = \"Hello! You didn't finish setting up that task \\u2014 I still need \" + stageLabel + \". Want to continue, or should I drop it? (reply 'never mind' to cancel)\";\nreturn [{ json: { from: $json.from, phoneNumberId: $json.phoneNumberId, body: body } }];"
+      },
+      "id": "b1d569ce-6e4d-4b5a-84e3-e757fb6e84fa",
+      "name": "Build Mid-Session Greeting Reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4448,
+        3744
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{ $('Code in JavaScript1').item.json.phoneNumberId }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_WHATSAPP_ACCESS_TOKEN"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { messaging_product: \"whatsapp\", to: $('Handle Session Answer').item.json.from, type: \"text\", text: { body: \"Okay, noted \\u2014 let's not proceed with this task.\" } } }}",
+        "options": {}
+      },
+      "id": "c3197808-1412-4b8f-adc3-4ea00f03129f",
+      "name": "WhatsApp - Handle Session Cancel Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        4640,
+        3536
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{ $('Code in JavaScript1').item.json.phoneNumberId }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_WHATSAPP_ACCESS_TOKEN"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { messaging_product: \"whatsapp\", to: $('Build Mid-Session Greeting Reply').item.json.from, type: \"text\", text: { body: $('Build Mid-Session Greeting Reply').item.json.body } } }}",
+        "options": {}
+      },
+      "id": "0011253a-2f52-47a0-b8ab-b6cb7210dab1",
+      "name": "WhatsApp - Mid-Session Greeting Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        4720,
+        3760
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "GET - Verify Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - Cumulative Report?": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Lookup Report & Contact",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If - Admin ClickUp Command?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "If - Is Audio?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup Report & Contact": {
+      "main": [
+        [
+          {
+            "node": "Switch - Report Outcome",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch - Report Outcome": {
+      "main": [
+        [
+          {
+            "node": "Read Report File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP Request2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Report File": {
+      "main": [
+        [
+          {
+            "node": "Upload Report Media",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Report Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Report Media": {
+      "main": [
+        [
+          {
+            "node": "Send Report Document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - Admin ClickUp Command?": {
+      "main": [
+        [
+          {
+            "node": "Determine Sender Role",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama - Parse Command": {
+      "main": [
+        [
+          {
+            "node": "Parse Intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup Assignee": {
+      "main": [
+        [
+          {
+            "node": "Check Task Completeness",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request3": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp - Confirm Task Created",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "WhatsApp - Notify Assignee",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Determine Sender Role": {
+      "main": [
+        [
+          {
+            "node": "Detect Completion Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Intent": {
+      "main": [
+        [
+          {
+            "node": "Switch - Intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch - Intent": {
+      "main": [
+        [
+          {
+            "node": "Lookup Assignee",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Find Open Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Find Open Tasks (Reschedule)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Find Open Tasks (Acknowledge)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Detect Cancel Session",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Greeting Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Open Tasks": {
+      "main": [
+        [
+          {
+            "node": "Match Task - Status Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Match Task - Status Update": {
+      "main": [
+        [
+          {
+            "node": "If - Task Matched (Status)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - Task Matched (Status)": {
+      "main": [
+        [
+          {
+            "node": "If - Status Completed?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WhatsApp - Task Not Found Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - Status Completed?": {
+      "main": [
+        [
+          {
+            "node": "Update Task - Complete",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Task - In Progress",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Task - Complete": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp - Confirm Completed to Alex",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp - Confirm Completed to Alex": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp - Notify Persival Completed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Task - In Progress": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp - Confirm Started to Alex",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Open Tasks (Reschedule)": {
+      "main": [
+        [
+          {
+            "node": "Match Task - Reschedule",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Match Task - Reschedule": {
+      "main": [
+        [
+          {
+            "node": "If - Task Matched (Reschedule)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - Task Matched (Reschedule)": {
+      "main": [
+        [
+          {
+            "node": "Compute New Due Date",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WhatsApp - Reschedule Task Not Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compute New Due Date": {
+      "main": [
+        [
+          {
+            "node": "Update Task - Due Date",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Task - Due Date": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp - Confirm Reschedule to Sender",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp - Confirm Reschedule to Sender": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp - Notify Assignee of New Deadline",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Pending Session": {
+      "main": [
+        [
+          {
+            "node": "If - Has Pending Session?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - Has Pending Session?": {
+      "main": [
+        [
+          {
+            "node": "Handle Session Answer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ollama - Parse Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handle Session Answer": {
+      "main": [
+        [
+          {
+            "node": "Switch - Session Outcome",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch - Session Outcome": {
+      "main": [
+        [
+          {
+            "node": "Prepare Task Payload (Questionnaire)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Next Question Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ollama - Parse Date Text",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WhatsApp - Handle Session Cancel Reply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Mid-Session Greeting Reply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WhatsApp - Clarify Ambiguous",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Task Payload (Questionnaire)": {
+      "main": [
+        [
+          {
+            "node": "Create Task in ClickUp (Questionnaire)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Task in ClickUp (Questionnaire)": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp - Confirm Task Created (Questionnaire)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp - Confirm Task Created (Questionnaire)": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp - Notify Assignee (Questionnaire)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Next Question Message": {
+      "main": [
+        [
+          {
+            "node": "Send Next Question",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Task Completeness": {
+      "main": [
+        [
+          {
+            "node": "If - Task Complete?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - Task Complete?": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request3",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Start Session From CREATE_TASK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start Session From CREATE_TASK": {
+      "main": [
+        [
+          {
+            "node": "Build Next Question Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect Completion Reply": {
+      "main": [
+        [
+          {
+            "node": "If - Completion Reply?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - Completion Reply?": {
+      "main": [
+        [
+          {
+            "node": "Get Task Details (Completion Reply)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Check Pending Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Task Details (Completion Reply)": {
+      "main": [
+        [
+          {
+            "node": "Handle Completion Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handle Completion Reply": {
+      "main": [
+        [
+          {
+            "node": "If - Completed Yes?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - Completed Yes?": {
+      "main": [
+        [
+          {
+            "node": "Update Task - Complete (Overdue Confirm)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WhatsApp - Tell Priority ASAP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Task - Complete (Overdue Confirm)": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp - Confirm Completed (Overdue)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp - Confirm Completed (Overdue)": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp - Notify Persival (Overdue Completed)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama - Parse Date Text": {
+      "main": [
+        [
+          {
+            "node": "Apply Ollama Date Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apply Ollama Date Result": {
+      "main": [
+        [
+          {
+            "node": "If - Date AI Ready?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - Date AI Ready?": {
+      "main": [
+        [
+          {
+            "node": "Prepare Task Payload (Questionnaire)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Next Question Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Open Tasks (Acknowledge)": {
+      "main": [
+        [
+          {
+            "node": "Match Task - Acknowledge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Match Task - Acknowledge": {
+      "main": [
+        [
+          {
+            "node": "If - Ack Task Found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - Ack Task Found?": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp - Confirm Ack to Sender",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "If - Should Notify Persival?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - Should Notify Persival?": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp - Notify Persival (Acknowledged)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - Is Audio?": {
+      "main": [
+        [
+          {
+            "node": "Get Media URL",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If - Cumulative Report?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Media URL": {
+      "main": [
+        [
+          {
+            "node": "Download Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Audio": {
+      "main": [
+        [
+          {
+            "node": "Transcribe Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe Audio": {
+      "main": [
+        [
+          {
+            "node": "Merge Transcript into Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Transcript into Message": {
+      "main": [
+        [
+          {
+            "node": "If - Cumulative Report?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect Cancel Session": {
+      "main": [
+        [
+          {
+            "node": "If - Pending Session To Cancel?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - Pending Session To Cancel?": {
+      "main": [
+        [
+          {
+            "node": "Clear Cancelled Session",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Find Open Tasks (Cancel)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clear Cancelled Session": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp - Session Cancelled Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Open Tasks (Cancel)": {
+      "main": [
+        [
+          {
+            "node": "Match Task - Cancel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Match Task - Cancel": {
+      "main": [
+        [
+          {
+            "node": "If - Cancel Task Found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - Cancel Task Found?": {
+      "main": [
+        [
+          {
+            "node": "ClickUp - Delete Cancelled Task",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WhatsApp - Nothing To Cancel Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ClickUp - Delete Cancelled Task": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp - Confirm Cancel to Sender",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp - Confirm Cancel to Sender": {
+      "main": [
+        [
+          {
+            "node": "If - Should Notify Cancel?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - Should Notify Cancel?": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp - Notify Other Party (Cancelled)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Greeting Reply": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp - Greeting Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Mid-Session Greeting Reply": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp - Mid-Session Greeting Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "711c3a87-9994-4d97-9a44-fb6d822b2a5b",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "nodeGroups": [],
+  "id": "XFemvefPRS1dB9XR",
+  "tags": []
+}
